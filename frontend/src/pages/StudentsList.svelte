@@ -1,5 +1,7 @@
 <script>
   import { onMount } from 'svelte';
+  import { API_BASE_URL } from '../lib/api';
+
 
   let students = [];
   let loading = false;
@@ -23,7 +25,7 @@
     error = '';
 
     try {
-      const res = await fetch('/api/students');
+      const res = await fetch(`${API_BASE_URL}/api/students`);
 
       // Log the response for debugging
       console.log('API response:', res);
@@ -53,7 +55,7 @@
     error = '';
 
     try {
-      const res = await fetch('/api/students', {
+      const res = await fetch(`${API_BASE_URL}/api/students`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newStudent)

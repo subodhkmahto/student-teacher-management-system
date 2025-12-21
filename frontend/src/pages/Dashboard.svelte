@@ -1,5 +1,7 @@
 <script>
   import { onMount } from 'svelte';
+  import { API_BASE_URL } from '../lib/api';
+
 
   let stats = {
     students: 0,
@@ -13,10 +15,10 @@
   onMount(async () => {
     try {
       const [studentsRes, teachersRes, coursesRes, enrollmentsRes] = await Promise.all([
-        fetch('/api/students'),
-        fetch('/api/teachers'),
-        fetch('/api/courses'),
-        fetch('/api/enrollments')
+        fetch(`${API_BASE_URL}/api/students`),
+        fetch(`${API_BASE_URL}/api/teachers`),
+        fetch(`${API_BASE_URL}/api/courses`),
+        fetch(`${API_BASE_URL}/api/enrollments`)
       ]);
 
       const [students, teachers, courses, enrollments] = await Promise.all([

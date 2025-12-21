@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { API_BASE_URL } from '../lib/api';
 
   let courses = [];
   let loading = true;
@@ -14,7 +15,7 @@
 
   async function loadCourses() {
     try {
-      const response = await fetch('/api/courses');
+      const response = await fetch(`${API_BASE_URL}/api/courses`);
       if (!response.ok) throw new Error('Failed to load courses');
       courses = await response.json();
     } catch (err) {
@@ -32,7 +33,7 @@
 
     submitting = true;
     try {
-      const response = await fetch('/api/courses', {
+      const response = await fetch(`${API_BASE_URL}/api/courses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newCourse)

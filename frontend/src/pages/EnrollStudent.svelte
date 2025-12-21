@@ -1,5 +1,7 @@
 <script>
   import { onMount } from 'svelte';
+  import { API_BASE_URL } from '../lib/api';
+
 
   let students = [];
   let courses = [];
@@ -12,8 +14,8 @@
   onMount(async () => {
     try {
       const [studentsRes, coursesRes] = await Promise.all([
-        fetch('/api/students'),
-        fetch('/api/courses')
+        fetch(`${API_BASE_URL}/api/students`),
+        fetch(`${API_BASE_URL}/api/courses`)
       ]);
 
       if (studentsRes.ok) students = await studentsRes.json();
@@ -34,7 +36,7 @@
     submitting = true;
     error = '';
     try {
-      const response = await fetch('/api/enrollments', {
+      const response = await fetch(`${API_BASE_URL}/api/enrollments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

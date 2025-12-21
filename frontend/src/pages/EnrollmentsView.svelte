@@ -1,5 +1,7 @@
 <script>
   import { onMount } from 'svelte';
+  import { API_BASE_URL } from '../lib/api';
+
 
   let enrollments = [];
   let loading = true;
@@ -12,7 +14,7 @@
 
   async function loadEnrollments() {
     try {
-      const response = await fetch('/api/enrollments');
+      const response = await fetch(`${API_BASE_URL}/api/enrollments`);
       if (!response.ok) throw new Error('Failed to load enrollments');
       enrollments = await response.json();
     } catch (err) {
@@ -29,7 +31,7 @@
 
   async function updateStatus(enrollmentId, newStatus) {
     try {
-      const response = await fetch(`/api/enrollments/${enrollmentId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/enrollments/${enrollmentId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
