@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
         semester,
         teacher_id,
         course_id,
-        teachers(user_id, profiles(full_name, email)),
+        teachers(user_id, full_name, email),
         courses(name, code, description)
       `)
       .order('created_at', { ascending: false });
