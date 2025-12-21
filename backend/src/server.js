@@ -19,7 +19,8 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://student-teacher-management-system-iahm1654l.vercel.app"
+    "https://student-teacher-management-system-iahm1654l.vercel.app",
+    "https://student-teacher-managem-git-679121-subodh-kumar-mahtos-projects.vercel.app" //  Add this
   ],
   credentials: true // important for cookies
 }));
