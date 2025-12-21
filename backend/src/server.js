@@ -1,14 +1,14 @@
-import express from 'express';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import cookieParser from 'cookie-parser';
+import express from 'express';
 
 import authRoutes from './routes/auth.js';
-import studentRoutes from './routes/students.js';
-import teacherRoutes from './routes/teachers.js';
+import courseAssignmentRoutes from './routes/course-assignments.js';
 import courseRoutes from './routes/courses.js';
 import enrollmentRoutes from './routes/enrollments.js';
-import courseAssignmentRoutes from './routes/course-assignments.js';
+import studentRoutes from './routes/students.js';
+import teacherRoutes from './routes/teachers.js';
 
 dotenv.config();
 
