@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
       .order('enrollment_date', { ascending: false });
 
     if (error) throw error;
-    res.json(data);
+    res.json(data || []);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

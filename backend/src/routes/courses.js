@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    res.json(data);
+    res.json(data || []);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
