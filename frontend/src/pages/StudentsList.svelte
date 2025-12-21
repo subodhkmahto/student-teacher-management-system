@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { API_BASE_URL } from '../lib/api';
+  console.log('API_BASE_URL:', API_BASE_URL);
 
 
   let students = [];
@@ -26,7 +27,7 @@
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/students`);
-
+      console.log('Fetch response:', res);
       // Log the response for debugging
       console.log('API response:', res);
 

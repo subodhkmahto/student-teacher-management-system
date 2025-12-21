@@ -15,7 +15,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 1️⃣ Enable CORS before routes
+//  Enable CORS before routes
 app.use(cors({
   origin: [
     "http://localhost:5173",
@@ -24,13 +24,13 @@ app.use(cors({
   credentials: true // important for cookies
 }));
 
-// 2️⃣ Body parser
+//  Body parser
 app.use(express.json());
 
-// 3️⃣ Cookie parser must be before routes
+//  Cookie parser must be before routes
 app.use(cookieParser());
 
-// 4️⃣ Routes
+//  Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/teachers', teacherRoutes);
@@ -38,12 +38,12 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/course-assignments', courseAssignmentRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 
-// 5️⃣ Health check route
+//  Health check route
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK' });
 });
 
-// 6️⃣ Start server
+//  Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

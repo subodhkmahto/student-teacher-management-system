@@ -15,7 +15,7 @@ function createAuthStore() {
   return {
     subscribe,
 
-    // ✅ Frontend login
+    //  Frontend login
     login: async (email, password) => {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -45,7 +45,7 @@ function createAuthStore() {
       }
     },
 
-    // ✅ Frontend registration
+    //  Frontend registration
     register: async (email, password, fullName, role) => {
       try {
         const { data, error } = await supabase.auth.signUp({
@@ -72,7 +72,7 @@ function createAuthStore() {
       }
     },
 
-    // ✅ Logout
+    //  Logout
     logout: async () => {
       try {
         await supabase.auth.signOut();
@@ -82,7 +82,7 @@ function createAuthStore() {
       }
     },
 
-    // ✅ Restore session on page load
+    //  Restore session on page load
     initAuth: async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
