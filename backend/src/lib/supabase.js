@@ -16,6 +16,24 @@ export async function signUp(email, password, fullName, role) {
       data: {
         full_name: fullName,
         role
+      },
+      emailRedirectTo: "http://localhost:5173/login" // frontend url
+    }
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+
+export async function signUpOld(email, password, fullName, role) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: fullName,
+        role
       }
     }
   });
