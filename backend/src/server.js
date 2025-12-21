@@ -17,7 +17,10 @@ const PORT = process.env.PORT || 3000;
 
 // 1️⃣ Enable CORS before routes
 app.use(cors({
-  origin: 'http://localhost:5173', // frontend URL
+  origin: [
+    "http://localhost:5173",
+    "https://student-teacher-management-system-iahm1654l.vercel.app"
+  ],
   credentials: true // important for cookies
 }));
 
