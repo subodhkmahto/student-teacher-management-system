@@ -119,6 +119,7 @@
   @media (max-width: 768px) {
     .app-layout {
       flex-direction: column;
+      margin-left: 40px;
     }
   }
 </style>

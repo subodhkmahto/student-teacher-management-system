@@ -63,11 +63,11 @@
 
 </script>
 
-<div class="container-auto">
-  <div class="card shadow-sm p-4" style="margin-left:250px;">
-    
-    <!-- HEADER -->
-    <div class="card-header d-flex justify-content-between align-items-center">
+<div class="page-wrapper">
+  <div class="container-fluid py-4">
+    <div class="card shadow-sm teachers-card">
+
+      <div class="card-header d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Teachers</h5>
       <button
         class="btn btn-primary btn-sm"
@@ -166,3 +166,53 @@
     </div>
   </div>
 </div>
+</div>
+
+
+
+<style>
+  
+  body.sidebar-collapsed .page-wrapper {
+  margin-left: 0;
+  width: 100%;
+}
+.card{
+  border-radius: 12px;
+  border: 1px solid #e3e6f0;
+  margin-top: 38px;
+}
+
+.page-wrapper {
+  margin-left: 250px;
+  width: calc(100% - 250px);
+  min-height: 100vh;
+  background: #f8f9fa;
+  transition: all 0.3s ease;
+  margin-bottom: 300px;
+
+}
+
+
+@media (max-width: 991px) {
+  .page-wrapper {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+.container-fluid {
+  max-width: 1400px;
+}
+
+.teachers-card {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #e3e6f0;
+
+}
+
+.table th,
+.table td {
+  white-space: nowrap;
+}
+</style>
