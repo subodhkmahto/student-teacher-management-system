@@ -51,8 +51,15 @@ function createAuthStore() {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: {
-            data: { full_name: fullName, role }
+          // options: {
+          //   data: { full_name: fullName, role }
+          // }
+           options: {
+            emailRedirectTo: 'https://student-teacher-management-system-iahm1654l.vercel.app',
+            data: {
+              full_name: fullName,
+              role
+            }
           }
         });
         if (error) throw error;

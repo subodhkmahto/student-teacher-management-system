@@ -25,6 +25,16 @@
   const handleRegisterClick = () => {
     dispatch('page-change', 'register');
   };
+
+  const viewPassword = () => {
+    const passwordInput = document.getElementById('password');
+    if (passwordInput.type === 'password') {
+      passwordInput.type = 'text';
+    } else {
+      passwordInput.type = 'password';
+    }
+  };
+  
 </script>
 
 <div class="login-container">
@@ -58,6 +68,7 @@
           placeholder="Enter your password"
           required
           disabled={loading}
+          on:click={viewPassword}
         />
       </div>
 
