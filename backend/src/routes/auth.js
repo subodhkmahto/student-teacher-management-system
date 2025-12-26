@@ -1,5 +1,5 @@
 import express from 'express';
-import { signUp, signIn, signOut, getCurrentUser } from '../lib/supabase.js';
+import { signUp, signIn, signOut, getCurrentUser,forgotPassword } from '../lib/supabase.js';
 
 const router = express.Router();
 
@@ -36,6 +36,25 @@ router.get('/me', async (req, res) => {
   try {
     const user = await getCurrentUser();
     res.json({ user });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    await forgotPassword(email);
+
+    res.json({
+      success: true,
+      message: 'Password reset email sent'
+    });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

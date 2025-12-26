@@ -15,19 +15,13 @@ function createAuthStore() {
   return {
     subscribe,
 
-    // Frontend login
+    // Login
     login: async (email, password) => {
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           if (error.message.toLowerCase().includes('confirm')) {
-            throw new Error(
-              'Your email is not verified. Please check your inbox and confirm your email.'
-            );
+            throw new Error('Your email is not verified. Please check your inbox.');
           }
           throw error;
         }
@@ -37,7 +31,6 @@ function createAuthStore() {
           .select('*')
           .eq('id', data.user.id)
           .single();
-
         if (profileError) throw profileError;
 
         update(state => ({
@@ -48,106 +41,111 @@ function createAuthStore() {
         }));
 
         return true;
-      } catch (error) {
-        throw new Error(error.message);
+      } catch (err) {
+        throw new Error(err.message);
       }
     },
 
-    // Frontend registration
+    // Register
     register: async (email, password, fullName, role) => {
       try {
         const redirectUrl =
           window.location.hostname === 'localhost'
-            ? 'http://localhost:5173/'
-            : 'https://student-teacher-management-system-nine.vercel.app/';
+            ? 'http://localhost:5173/login'
+            : 'https://student-teacher-management-system-nine.vercel.app/login';
 
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: redirectUrl,
-            data: {
-              full_name: fullName,
-              role
-            }
+            data: { full_name: fullName, role }
           }
         });
 
         if (error) {
-          if (
-            error.message.toLowerCase().includes('already') ||
-            error.status === 422
-          ) {
+          if (error.message.toLowerCase().includes('already') || error.status === 422) {
             throw new Error('You are already registered. Please login.');
           }
           throw error;
         }
 
         return true;
-      } catch (error) {
-        throw new Error(error.message);
+      } catch (err) {
+        throw new Error(err.message);
       }
     },
 
     // Logout
     logout: async () => {
-      console.log('Logging out user');
       try {
         await supabase.auth.signOut();
-        set({
-          user: null,
-          session: null,
-          role: null,
-          loading: false
-        });
-      } catch (error) {
-        console.error('Logout error:', error.message);
+        set({ user: null, session: null, role: null, loading: false });
+      } catch (err) {
+        console.error('Logout error:', err.message);
       }
     },
 
-    resendVerificationEmail: async (email) => {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email
-      });
+    // Forgot password
+    forgotPassword: async (email) => {
+      const redirectUrl =
+        window.location.hostname === 'localhost'
+          ? 'http://localhost:5173/reset-password'
+          : 'https://student-teacher-management-system-nine.vercel.app/reset-password';
 
-      if (error) {
-        throw new Error(error.message);
-      }
-
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
+      if (error) throw error;
       return true;
-    }
-   ,
-    // Restore session on page load
+    },
+
+    // Update password using token
+    updatePassword: async (accessToken, newPassword) => {
+      try {
+        const { data, error } = await supabase.auth.updateUser(
+          { password: newPassword },
+          { accessToken }
+        );
+        if (error) throw error;
+        return data;
+      } catch (err) {
+        throw new Error(err.message);
+      }
+    },
+
+    // Resend verification email
+    resendVerificationEmail: async (email) => {
+      const { error } = await supabase.auth.resend({ type: 'signup', email });
+      if (error) throw new Error(error.message);
+      return true;
+    },
+
+    // Initialize auth
     initAuth: async () => {
       try {
-        const {
-          data: { session }
-        } = await supabase.auth.getSession();
+        if (window.location.pathname === '/reset-password') {
+          update(state => ({ ...state, loading: false }));
+          return;
+        }
+        
+        const { data: { session } } = await supabase.auth.getSession();
 
         if (session?.user) {
           const user = session.user;
 
-          // Check profile exists or not
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', user.id)
             .maybeSingle();
-
           if (profileError) throw profileError;
 
-          // Create profile ONLY if not exists
           if (!profileData) {
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert({
-                id: user.id,
-                email: user.email,
-                full_name: user.user_metadata?.full_name || '',
-                role: user.user_metadata?.role || 'student'
-              });
-
+            const { error: insertError } = await supabase.from('profiles').insert({
+              id: user.id,
+              email: user.email,
+              full_name: user.user_metadata?.full_name || '',
+              role: user.user_metadata?.role || 'student'
+            });
             if (insertError) throw insertError;
           }
 
@@ -159,22 +157,17 @@ function createAuthStore() {
             loading: false
           }));
         } else {
-          update(state => ({
-            ...state,
-            loading: false
-          }));
+          update(state => ({ ...state, loading: false }));
         }
-      } catch (error) {
-        update(state => ({
-          ...state,
-          loading: false
-        }));
+      } catch (err) {
+        console.error('Auth initialization error:', err.message);
+        update(state => ({ ...state, loading: false }));
       }
     }
   };
 }
 
-// Optional helper to initialize on app start
+// Helper to call on app start
 export async function initAuth() {
   await authStore.initAuth();
 }

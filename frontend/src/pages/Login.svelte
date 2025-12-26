@@ -8,12 +8,26 @@
   let password = '';
   let error = '';
   let loading = false;
-  let emailSent = false;
+  let success = '';
 
+  let mode = 'login'; 
+  // login | resend | forgot
+
+  const clearMessages = () => {
+    error = '';
+    success = '';
+  };
+
+  const autoClearSuccess = () => {
+    setTimeout(() => {
+      success = '';
+    }, 4000);
+  };
 
   const handleLogin = async () => {
-    error = '';
+    clearMessages();
     loading = true;
+
     try {
       await authStore.login(email, password);
       dispatch('page-change', 'dashboard');
@@ -24,64 +38,90 @@
     }
   };
 
-  const handleRegisterClick = () => {
-    dispatch('page-change', 'register');
-  };
-
   const resendVerification = async () => {
+    clearMessages();
+
     if (!email) {
-       error = 'Please enter your email first.';
-       emailSent = false;
-       return;
+      error = 'Please enter your email.';
+      return;
     }
+
+    loading = true;
 
     try {
       await authStore.resendVerificationEmail(email);
-      emailSent = true;
-      error = '';
+      success = 'Verification email sent successfully!';
+      autoClearSuccess();
+      mode = 'login';
     } catch (err) {
       error = err.message;
-      emailSent = false;
+    } finally {
+      loading = false;
     }
   };
 
-  const viewPassword = () => {
-    const passwordInput = document.getElementById('password');
-    if (passwordInput.type === 'password') {
-      passwordInput.type = 'text';
-    } else {
-      passwordInput.type = 'password';
+  const handleForgotPassword = async () => {
+    clearMessages();
+
+    if (!email) {
+      error = 'Please enter your email.';
+      return;
+    }
+
+    loading = true;
+
+    try {
+      await authStore.forgotPassword(email);
+      success = 'Password reset email sent. Please check your inbox.';
+      autoClearSuccess();
+      mode = 'login';
+    } catch (err) {
+      error = err.message;
+    } finally {
+      loading = false;
     }
   };
-  
+
+  const handleRegisterClick = () => {
+    dispatch('page-change', 'register');
+  };
 </script>
 
 <div class="login-container">
   <div class="login-card">
     <h1>School Management</h1>
-    <h2>Sign In</h2>
 
-     {#if error}
+    <h2>
+      {mode === 'login'
+        ? 'Sign In'
+        : mode === 'resend'
+        ? 'Resend Verification'
+        : 'Reset Password'}
+    </h2>
+
+    {#if error}
       <div class="error-message">{error}</div>
     {/if}
 
-    {#if emailSent}
-      <div class="success-message">Verification email sent successfully!</div>
+    {#if success}
+      <div class="success-message">{success}</div>
     {/if}
 
-    <form on:submit|preventDefault={handleLogin}>
-      <div class="form-group">
-        <label for="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          bind:value={email}
-          placeholder="Enter your email"
-          required
-          disabled={loading}
-        />
-      </div>
+    <!-- EMAIL -->
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input
+        id="email"
+        type="email"
+        bind:value={email}
+        placeholder="Enter your email"
+        required
+        disabled={loading}
+      />
+    </div>
 
+    <!-- PASSWORD (LOGIN ONLY) -->
+    {#if mode === 'login'}
       <div class="form-group">
         <label for="password">Password</label>
         <input
@@ -91,26 +131,79 @@
           placeholder="Enter your password"
           required
           disabled={loading}
-          on:click={viewPassword}
         />
       </div>
+    {/if}
 
-      <button type="submit" class="btn-primary" disabled={loading}>
+    <!-- ACTION BUTTONS -->
+    {#if mode === 'login'}
+      <button
+        class="btn-primary"
+        on:click={handleLogin}
+        disabled={loading}
+      >
         {loading ? 'Signing in...' : 'Sign In'}
       </button>
-    </form>
 
-    <p class="resend-email">
-      Didn't receive verification email?
-      <button type="button" class="link-button" on:click={resendVerification}>
-        Resend Email
+    {:else if mode === 'resend'}
+      <button
+        class="btn-primary"
+        on:click={resendVerification}
+        disabled={loading}
+      >
+        {loading ? 'Sending...' : 'Send Verification Email'}
       </button>
-    </p>
 
+    {:else if mode === 'forgot'}
+      <button
+        class="btn-primary"
+        on:click={handleForgotPassword}
+        disabled={loading}
+      >
+        {loading ? 'Sending...' : 'Send Reset Link'}
+      </button>
+    {/if}
+
+    <!-- LINKS -->
+    {#if mode === 'login'}
+      <p class="signup-link">
+        Didn't receive verification email?
+        <button
+          class="link-button"
+          on:click={() => (mode = 'resend')}
+        >
+          Resend Email
+        </button>
+      </p>
+
+      <p class="signup-link">
+        Forgot your password?
+        <button
+          class="link-button"
+          on:click={() => (mode = 'forgot')}
+        >
+          Reset Password
+        </button>
+      </p>
+    {/if}
+
+    {#if mode !== 'login'}
+      <p class="signup-link">
+        <button
+          class="link-button"
+          on:click={() => (mode = 'login')}
+        >
+          Back to Sign In
+        </button>
+      </p>
+    {/if}
 
     <p class="signup-link">
       Don't have an account?
-      <button type="button" on:click={handleRegisterClick} class="link-button">
+      <button
+        class="link-button"
+        on:click={handleRegisterClick}
+      >
         Sign up
       </button>
     </p>
@@ -123,7 +216,11 @@
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: linear-gradient(135deg, var(--primary) 0%, #60a5fa 100%);
+    background: linear-gradient(
+      135deg,
+      var(--primary) 0%,
+      #60a5fa 100%
+    );
   }
 
   .login-card {
@@ -138,41 +235,22 @@
   h1 {
     font-size: 1.5rem;
     color: var(--primary);
-    margin-bottom: 0.5rem;
     text-align: center;
   }
 
   h2 {
-    font-size: 1.25rem;
-    color: var(--text-dark);
-    margin-bottom: 1.5rem;
     text-align: center;
-  }
-
-  .error-message {
-    background: #fee2e2;
-    color: #dc2626;
-    padding: 0.75rem;
-    border-radius: 4px;
-    margin-bottom: 1rem;
-    font-size: 0.875rem;
-  }
-
-  form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    margin-bottom: 1.5rem;
   }
 
   .form-group {
     display: flex;
     flex-direction: column;
+    margin-bottom: 1rem;
   }
 
   label {
     font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text-dark);
     margin-bottom: 0.5rem;
   }
 
@@ -181,18 +259,6 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     font-size: 1rem;
-    transition: border-color 0.2s;
-  }
-
-  input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  input:disabled {
-    background: #f3f4f6;
-    cursor: not-allowed;
   }
 
   .btn-primary {
@@ -201,25 +267,13 @@
     padding: 0.75rem;
     border: none;
     border-radius: 4px;
-    font-size: 1rem;
-    font-weight: 500;
+    width: 100%;
     cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .btn-primary:hover:not(:disabled) {
-    background: #2563eb;
-  }
-
-  .btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
   }
 
   .signup-link {
     text-align: center;
     font-size: 0.875rem;
-    color: var(--text-light);
     margin-top: 1rem;
   }
 
@@ -228,24 +282,22 @@
     border: none;
     color: var(--primary);
     cursor: pointer;
-    font-weight: 500;
     text-decoration: underline;
-    padding: 0;
   }
 
-  .link-button:hover {
-    color: #2563eb;
+  .error-message {
+    background: #fee2e2;
+    color: #dc2626;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
   }
-  .resend-email {
-    font-size: 0.875rem;
-    margin-top: 0.5rem;
-  }
+
   .success-message {
     background: #d1fae5;
     color: #065f46;
     padding: 0.75rem;
     border-radius: 4px;
     margin-bottom: 1rem;
-    font-size: 0.875rem;
   }
 </style>
