@@ -2,6 +2,7 @@
   import { authStore } from '../stores/auth';
   import { createEventDispatcher } from 'svelte';
 
+
   const dispatch = createEventDispatcher();
 
   let email = '';

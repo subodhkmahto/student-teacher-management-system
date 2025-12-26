@@ -1,6 +1,8 @@
 <script>
   import { onMount } from 'svelte';
   import { API_BASE_URL } from '../lib/api';
+  import { authStore } from '../stores/auth';
+
 
 
   let teachers = [];
@@ -9,6 +11,10 @@
   let showForm = false;
   let newTeacher = { full_name: '', email: '', department: '', specialization: '' };
   let submitting = false;
+  let token;
+  authStore.subscribe(state => {
+    token = state.session?.access_token;
+  });
 
   onMount(async () => {
     await loadTeachers();
@@ -16,7 +22,12 @@
 
   async function loadTeachers() {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/teachers`);
+      const response = await fetch(`${API_BASE_URL}/api/teachers`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to load teachers');
       teachers = await response.json();
       console.log(teachers);
@@ -39,11 +50,14 @@
   try {
     const res = await fetch(`${API_BASE_URL}/api/teachers`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
       body: JSON.stringify(newTeacher)
     });
 
-    const result = await res.json(); // <- Yeh line important hai
+    const result = await res.json();
 
     if (!res.ok) {
       // Server se aaya hua error message use karo

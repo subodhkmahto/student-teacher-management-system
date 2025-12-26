@@ -1,3 +1,5 @@
+import { authenticate } from './middleware/auth.js';
+
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -35,11 +37,11 @@ app.use(cookieParser());
 
 //  Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/students', studentRoutes);
-app.use('/api/teachers', teacherRoutes);
-app.use('/api/courses', courseRoutes);
-app.use('/api/course-assignments', courseAssignmentRoutes);
-app.use('/api/enrollments', enrollmentRoutes);
+app.use('/api/students',authenticate, studentRoutes);
+app.use('/api/teachers',authenticate, teacherRoutes);
+app.use('/api/courses',authenticate, courseRoutes);
+app.use('/api/course-assignments',authenticate, courseAssignmentRoutes);
+app.use('/api/enrollments',authenticate, enrollmentRoutes);
 
 //  Health check route
 app.get('/api/health', (req, res) => {

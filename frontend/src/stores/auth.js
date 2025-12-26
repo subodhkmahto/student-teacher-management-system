@@ -15,21 +15,29 @@ function createAuthStore() {
   return {
     subscribe,
 
-    //  Frontend login
+    // Frontend login
     login: async (email, password) => {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password
         });
-        if (error) throw error;
 
-        // Fetch user profile from "profiles" table
+        if (error) {
+          if (error.message.toLowerCase().includes('confirm')) {
+            throw new Error(
+              'Your email is not verified. Please check your inbox and confirm your email.'
+            );
+          }
+          throw error;
+        }
+
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', data.user.id)
           .single();
+
         if (profileError) throw profileError;
 
         update(state => ({
@@ -45,33 +53,35 @@ function createAuthStore() {
       }
     },
 
-    //  Frontend registration
+    // Frontend registration
     register: async (email, password, fullName, role) => {
       try {
+        const redirectUrl =
+          window.location.hostname === 'localhost'
+            ? 'http://localhost:5173/'
+            : 'https://student-teacher-management-system-nine.vercel.app/';
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          // options: {
-          //   data: { full_name: fullName, role }
-          // }
-           options: {
-            emailRedirectTo: 'https://student-teacher-management-system-iahm1654l.vercel.app',
+          options: {
+            emailRedirectTo: redirectUrl,
             data: {
               full_name: fullName,
               role
             }
           }
         });
-        if (error) throw error;
 
-        // Optionally, insert into your "profiles" table
-        const { error: profileError } = await supabase.from('profiles').insert({
-          id: data.user.id,
-          email,
-          full_name: fullName,
-          role
-        });
-        if (profileError) throw profileError;
+        if (error) {
+          if (
+            error.message.toLowerCase().includes('already') ||
+            error.status === 422
+          ) {
+            throw new Error('You are already registered. Please login.');
+          }
+          throw error;
+        }
 
         return true;
       } catch (error) {
@@ -79,41 +89,86 @@ function createAuthStore() {
       }
     },
 
-    //  Logout
+    // Logout
     logout: async () => {
+      console.log('Logging out user');
       try {
         await supabase.auth.signOut();
-        set({ user: null, session: null, role: null, loading: false });
+        set({
+          user: null,
+          session: null,
+          role: null,
+          loading: false
+        });
       } catch (error) {
         console.error('Logout error:', error.message);
       }
     },
 
-    //  Restore session on page load
+    resendVerificationEmail: async (email) => {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return true;
+    }
+   ,
+    // Restore session on page load
     initAuth: async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session }
+        } = await supabase.auth.getSession();
+
         if (session?.user) {
+          const user = session.user;
+
+          // Check profile exists or not
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', session.user.id)
+            .eq('id', user.id)
             .maybeSingle();
-            // .single();
+
           if (profileError) throw profileError;
+
+          // Create profile ONLY if not exists
+          if (!profileData) {
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: user.id,
+                email: user.email,
+                full_name: user.user_metadata?.full_name || '',
+                role: user.user_metadata?.role || 'student'
+              });
+
+            if (insertError) throw insertError;
+          }
 
           update(state => ({
             ...state,
-            user: session.user,
+            user,
             session,
-            role: profileData?.role || null,
+            role: profileData?.role || user.user_metadata?.role || null,
             loading: false
           }));
         } else {
-          update(state => ({ ...state, loading: false }));
+          update(state => ({
+            ...state,
+            loading: false
+          }));
         }
       } catch (error) {
-        update(state => ({ ...state, loading: false }));
+        update(state => ({
+          ...state,
+          loading: false
+        }));
       }
     }
   };

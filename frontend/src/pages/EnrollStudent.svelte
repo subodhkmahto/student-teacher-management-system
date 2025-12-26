@@ -1,6 +1,8 @@
 <script>
   import { onMount } from 'svelte';
   import { API_BASE_URL } from '../lib/api';
+  import { authStore } from '../stores/auth';
+
 
 
   let students = [];
@@ -10,12 +12,22 @@
   let selectedStudent = '';
   let selectedCourse = '';
   let submitting = false;
+  let token;
+
+  // Get access token from authStore
+  authStore.subscribe(state => {
+    token = state.session?.access_token;
+  });
 
   onMount(async () => {
     try {
       const [studentsRes, coursesRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/students`),
-        fetch(`${API_BASE_URL}/api/courses`)
+        fetch(`${API_BASE_URL}/api/students`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API_BASE_URL}/api/courses`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
       ]);
 
       if (studentsRes.ok) students = await studentsRes.json();
@@ -38,7 +50,10 @@
     try {
       const response = await fetch(`${API_BASE_URL}/api/enrollments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({
           student_id: selectedStudent,
           course_id: selectedCourse

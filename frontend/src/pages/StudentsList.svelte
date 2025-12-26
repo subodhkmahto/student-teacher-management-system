@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { API_BASE_URL } from '../lib/api';
   console.log('API_BASE_URL:', API_BASE_URL);
+  import { authStore } from '../stores/auth';
 
 
   let students = [];
@@ -9,6 +10,12 @@
   let error = '';
   let showForm = false;
   let submitting = false;
+   let token;
+
+  // Subscribe to authStore to get current token
+  authStore.subscribe(state => {
+    token = state.session?.access_token;
+  });
 
   let newStudent = {
     full_name: '',
@@ -26,9 +33,12 @@
     error = '';
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/students`);
-      console.log('Fetch response:', res);
-      // Log the response for debugging
+      const res = await fetch(`${API_BASE_URL}/api/students`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
       console.log('API response:', res);
 
       if (!res.ok) {

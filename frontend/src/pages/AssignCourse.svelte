@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { API_BASE_URL } from '../lib/api';
+  import { authStore } from '../stores/auth';
 
 
   let teachers = [];
@@ -18,11 +19,18 @@
   });
 
   async function loadData() {
+      const token = authStore.session?.access_token; // get token from authStore
     try {
    const [teachersRes, coursesRes, assignmentsRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/teachers`),
-          fetch(`${API_BASE_URL}/api/courses`),
-          fetch(`${API_BASE_URL}/api/course-assignments`)
+            fetch(`${API_BASE_URL}/api/teachers`, {
+             headers: { Authorization: `Bearer ${token}` }
+             }),
+            fetch(`${API_BASE_URL}/api/courses`, {
+              headers: { Authorization: `Bearer ${token}` }
+            }),
+            fetch(`${API_BASE_URL}/api/course-assignments`, {
+              headers: { Authorization: `Bearer ${token}` }
+            })
         ]);
 
       if (teachersRes.ok) teachers = await teachersRes.json();
@@ -47,7 +55,10 @@ async function handleAssignCourse() {
   try {
     const response = await fetch(`${API_BASE_URL}/api/course-assignments`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authStore.session?.access_token}`
+      },
       body: JSON.stringify({
         teacher_id: selectedTeacher,
         course_id: selectedCourse,

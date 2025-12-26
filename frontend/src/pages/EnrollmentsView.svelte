@@ -1,12 +1,19 @@
 <script>
   import { onMount } from 'svelte';
   import { API_BASE_URL } from '../lib/api';
+  import { authStore } from '../stores/auth';
+
 
 
   let enrollments = [];
   let loading = true;
   let error = '';
   let filterStatus = 'all';
+  let token;
+  // Get access token from authStore
+  authStore.subscribe(state => {
+    token = state.session?.access_token;
+  });
 
   onMount(async () => {
     await loadEnrollments();
@@ -14,7 +21,9 @@
 
   async function loadEnrollments() {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/enrollments`);
+      const response = await fetch(`${API_BASE_URL}/api/enrollments`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (!response.ok) throw new Error('Failed to load enrollments');
       enrollments = await response.json();
     } catch (err) {
@@ -33,7 +42,10 @@
     try {
       const response = await fetch(`${API_BASE_URL}/api/enrollments/${enrollmentId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+         headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({ status: newStatus })
       });
 

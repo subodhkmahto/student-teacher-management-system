@@ -1,6 +1,8 @@
 <script>
   import { onMount } from 'svelte';
   import { API_BASE_URL } from '../lib/api';
+  import { authStore } from '../stores/auth';
+
 
   let courses = [];
   let loading = true;
@@ -8,6 +10,7 @@
   let showForm = false;
   let newCourse = { name: '', code: '', description: '', credit_hours: '' };
   let submitting = false;
+  const token = authStore.session?.access_token; // get Supabase token
 
   onMount(async () => {
     await loadCourses();
@@ -15,7 +18,11 @@
 
   async function loadCourses() {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/courses`);
+       const response = await fetch(`${API_BASE_URL}/api/courses`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!response.ok) throw new Error('Failed to load courses');
       courses = await response.json();
     } catch (err) {
@@ -35,7 +42,10 @@
     try {
       const response = await fetch(`${API_BASE_URL}/api/courses`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+          headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(newCourse)
       });
 

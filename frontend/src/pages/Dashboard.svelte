@@ -1,6 +1,8 @@
 <script>
   import { onMount } from 'svelte';
   import { API_BASE_URL } from '../lib/api';
+  import { authStore } from '../stores/auth';
+
 
 
   let stats = {
@@ -10,15 +12,29 @@
     enrollments: 0
   };
   let loading = true;
+  let token;
+
+  authStore.subscribe(state => {
+    token = state.session?.access_token;
+  });
+
 
   // Fetch all stats on component mount
   onMount(async () => {
     try {
       const [studentsRes, teachersRes, coursesRes, enrollmentsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/students`),
-        fetch(`${API_BASE_URL}/api/teachers`),
-        fetch(`${API_BASE_URL}/api/courses`),
-        fetch(`${API_BASE_URL}/api/enrollments`)
+        fetch(`${API_BASE_URL}/api/students`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API_BASE_URL}/api/teachers`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API_BASE_URL}/api/courses`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API_BASE_URL}/api/enrollments`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
       ]);
 
       const [students, teachers, courses, enrollments] = await Promise.all([

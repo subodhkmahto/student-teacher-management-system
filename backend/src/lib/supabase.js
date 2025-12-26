@@ -8,20 +8,38 @@ const supabaseKey = process.env.VITE_SUPABASE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+
 export async function signUp(email, password, fullName, role) {
+  const redirectUrl =
+    process.env.NODE_ENV === 'production'
+      ? 'https://student-teacher-management-system-nine.vercel.app/'
+      : 'http://localhost:5173/';
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      emailRedirectTo: redirectUrl,
       data: {
         full_name: fullName,
         role
-      },
-      emailRedirectTo: "http://localhost:5173/login" // frontend url
+      }
     }
   });
 
-  if (error) throw error;
+  if (error) {
+    // Unique constraint violation
+    if (error.code === '23505') {
+      return {
+        error: 'This email is already registered'
+      };
+    }
+
+    return {
+      error: error.message
+    };
+  }
+
   return data;
 }
 
@@ -73,12 +91,12 @@ export async function signUpOld(email, password, fullName, role) {
   return data;
 }
 
-export async function signIn(email, password) {
+export async function signIn(email, password) { 
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password
   });
-console.log('SIGN IN DATA:', data);
+  console.log('SIGN IN DATA:', data);
   if (error) throw error;
   return data;
 }

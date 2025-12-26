@@ -8,6 +8,8 @@
   let password = '';
   let error = '';
   let loading = false;
+  let emailSent = false;
+
 
   const handleLogin = async () => {
     error = '';
@@ -26,6 +28,23 @@
     dispatch('page-change', 'register');
   };
 
+  const resendVerification = async () => {
+    if (!email) {
+       error = 'Please enter your email first.';
+       emailSent = false;
+       return;
+    }
+
+    try {
+      await authStore.resendVerificationEmail(email);
+      emailSent = true;
+      error = '';
+    } catch (err) {
+      error = err.message;
+      emailSent = false;
+    }
+  };
+
   const viewPassword = () => {
     const passwordInput = document.getElementById('password');
     if (passwordInput.type === 'password') {
@@ -42,8 +61,12 @@
     <h1>School Management</h1>
     <h2>Sign In</h2>
 
-    {#if error}
+     {#if error}
       <div class="error-message">{error}</div>
+    {/if}
+
+    {#if emailSent}
+      <div class="success-message">Verification email sent successfully!</div>
     {/if}
 
     <form on:submit|preventDefault={handleLogin}>
@@ -76,6 +99,14 @@
         {loading ? 'Signing in...' : 'Sign In'}
       </button>
     </form>
+
+    <p class="resend-email">
+      Didn't receive verification email?
+      <button type="button" class="link-button" on:click={resendVerification}>
+        Resend Email
+      </button>
+    </p>
+
 
     <p class="signup-link">
       Don't have an account?
@@ -204,5 +235,17 @@
 
   .link-button:hover {
     color: #2563eb;
+  }
+  .resend-email {
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+  }
+  .success-message {
+    background: #d1fae5;
+    color: #065f46;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
   }
 </style>
