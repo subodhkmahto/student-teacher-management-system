@@ -15,6 +15,46 @@
 
   const dispatch = createEventDispatcher();
 
+  // Get user role
+  $: userRole = $authStore.role || '';
+
+  // Define which stats are visible for each role
+  const statCards = [
+    {
+      key: 'students',
+      title: 'Students',
+      icon: '👥',
+      iconBg: '#dbeafe',
+      roles: ['admin','student', 'teacher']
+    },
+    {
+      key: 'teachers',
+      title: 'Teachers',
+      icon: '👨‍🏫',
+      iconBg: '#dcfce7',
+      roles: ['admin','teacher']
+    },
+    {
+      key: 'courses',
+      title: 'Courses',
+      icon: '📚',
+      iconBg: '#fef3c7',
+      roles: ['student', 'teacher', 'admin']
+    },
+    {
+      key: 'enrollments',
+      title: 'Enrollments',
+      icon: '📋',
+      iconBg: '#ede9fe',
+      roles: ['teacher', 'admin']
+    }
+  ];
+
+  // Filter stats based on user role
+  $: visibleStats = statCards.filter(card => 
+    card.roles.includes(userRole)
+  );
+
   async function fetchStats() {
     if (isFetching) return;
     isFetching = true;
@@ -63,37 +103,15 @@
     <div class="loading">Loading...</div>
   {:else}
     <div class="stats-grid">
-      <div class="stat-card" style="--icon-bg: #dbeafe;">
-        <div class="stat-icon">👥</div>
-        <div class="stat-content">
-          <h3>Students</h3>
-          <p class="stat-number">{stats.students}</p>
+      {#each visibleStats as card}
+        <div class="stat-card" style="--icon-bg: {card.iconBg};">
+          <div class="stat-icon">{card.icon}</div>
+          <div class="stat-content">
+            <h3>{card.title}</h3>
+            <p class="stat-number">{stats[card.key]}</p>
+          </div>
         </div>
-      </div>
-
-      <div class="stat-card" style="--icon-bg: #dcfce7;">
-        <div class="stat-icon">👨‍🏫</div>
-        <div class="stat-content">
-          <h3>Teachers</h3>
-          <p class="stat-number">{stats.teachers}</p>
-        </div>
-      </div>
-
-      <div class="stat-card" style="--icon-bg: #fef3c7;">
-        <div class="stat-icon">📚</div>
-        <div class="stat-content">
-          <h3>Courses</h3>
-          <p class="stat-number">{stats.courses}</p>
-        </div>
-      </div>
-
-      <div class="stat-card" style="--icon-bg: #ede9fe;">
-        <div class="stat-icon">📋</div>
-        <div class="stat-content">
-          <h3>Enrollments</h3>
-          <p class="stat-number">{stats.enrollments}</p>
-        </div>
-      </div>
+      {/each}
     </div>
   {/if}
 </div>

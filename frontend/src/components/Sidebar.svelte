@@ -9,6 +9,10 @@
 
   let isOpen = false;
 
+  // Get user role from authStore
+  $: userRole = $authStore.role || '';
+  $: userEmail = $authStore.user?.email || '';
+
   const navigate = (page) => {
     dispatch('navigate', page);
     isOpen = false;
@@ -22,6 +26,50 @@
   const toggleSidebar = () => {
     isOpen = !isOpen;
   };
+
+  // Define which menu items are visible for each role
+  const menuItems = [
+    {
+      page: 'dashboard',
+      label: 'Dashboard',
+      roles: ['student', 'teacher', 'admin']
+    },
+    {
+      page: 'students',
+      label: 'Students',
+      roles: ['student', 'teacher', 'admin']
+    },
+    {
+      page: 'teachers',
+      label: 'Teachers',
+      roles: ['teacher', 'admin']
+    },
+    {
+      page: 'courses',
+      label: 'Courses',
+      roles: ['student', 'teacher', 'admin']
+    },
+    {
+      page: 'assign-course',
+      label: 'Assign Course',
+      roles: ['admin','teacher']
+    },
+    {
+      page: 'enroll-student',
+      label: 'Enroll Student',
+      roles: ['admin','teacher']
+    },
+    {
+      page: 'enrollments',
+      label: 'Enrollments',
+      roles: ['teacher', 'admin']
+    }
+  ];
+
+  // Filter menu items based on user role
+  $: visibleMenuItems = menuItems.filter(item => 
+    item.roles.includes(userRole)
+  );
 </script>
 
 <!-- Sidebar -->
@@ -32,65 +80,19 @@
   </div>
 
   <nav class="sidebar-nav">
-    <button
-      class="nav-item"
-      class:active={currentPage === 'dashboard'}
-      on:click={() => navigate('dashboard')}
-    >
-      Dashboard
-    </button>
-
-    <button
-      class="nav-item"
-      class:active={currentPage === 'students'}
-      on:click={() => navigate('students')}
-    >
-      Students
-    </button>
-
-    <button
-      class="nav-item"
-      class:active={currentPage === 'teachers'}
-      on:click={() => navigate('teachers')}
-    >
-      Teachers
-    </button>
-
-    <button
-      class="nav-item"
-      class:active={currentPage === 'courses'}
-      on:click={() => navigate('courses')}
-    >
-      Courses
-    </button>
-
-    <button
-      class="nav-item"
-      class:active={currentPage === 'assign-course'}
-      on:click={() => navigate('assign-course')}
-    >
-      Assign Course
-    </button>
-
-    <button
-      class="nav-item"
-      class:active={currentPage === 'enroll-student'}
-      on:click={() => navigate('enroll-student')}
-    >
-      Enroll Student
-    </button>
-
-    <button
-      class="nav-item"
-      class:active={currentPage === 'enrollments'}
-      on:click={() => navigate('enrollments')}
-    >
-      Enrollments
-    </button>
+    {#each visibleMenuItems as item}
+      <button
+        class="nav-item"
+        class:active={currentPage === item.page}
+        on:click={() => navigate(item.page)}
+      >
+        {item.label}
+      </button>
+    {/each}
   </nav>
 
   <div class="sidebar-footer">
-    <p class="user-email">{$authStore.user?.email}</p>
+    <p class="user-email">{userEmail}</p>
     <button class="btn-logout" on:click={logout}>
       Logout
     </button>
