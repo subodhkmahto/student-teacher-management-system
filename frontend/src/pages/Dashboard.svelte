@@ -1,9 +1,7 @@
 <script>
-  import { onMount } from 'svelte';
-  import { API_BASE_URL } from '../lib/api';
+  import { onMount, createEventDispatcher } from 'svelte';
+  import { apiCall } from '../lib/api';
   import { authStore } from '../stores/auth';
-
-
 
   let stats = {
     students: 0,
@@ -11,51 +9,49 @@
     courses: 0,
     enrollments: 0
   };
+
   let loading = true;
-  let token;
+  let isFetching = false;
 
-  authStore.subscribe(state => {
-    token = state.session?.access_token;
-  });
+  const dispatch = createEventDispatcher();
 
+  async function fetchStats() {
+    if (isFetching) return;
+    isFetching = true;
 
-  // Fetch all stats on component mount
-  onMount(async () => {
     try {
-      const [studentsRes, teachersRes, coursesRes, enrollmentsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/students`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch(`${API_BASE_URL}/api/teachers`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch(`${API_BASE_URL}/api/courses`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch(`${API_BASE_URL}/api/enrollments`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      ]);
-
       const [students, teachers, courses, enrollments] = await Promise.all([
-        studentsRes.json(),
-        teachersRes.json(),
-        coursesRes.json(),
-        enrollmentsRes.json()
+        apiCall('/api/students'),
+        apiCall('/api/teachers'),
+        apiCall('/api/courses'),
+        apiCall('/api/enrollments')
       ]);
 
       stats = {
-        students: students.length || 0,
-        teachers: teachers.length || 0,
-        courses: courses.length || 0,
-        enrollments: enrollments.length || 0
+        students: students?.length || 0,
+        teachers: teachers?.length || 0,
+        courses: courses?.length || 0,
+        enrollments: enrollments?.length || 0
       };
-    } catch (err) {
-      console.error('Error fetching stats:', err);
+
+      console.log('Dashboard stats loaded:', stats);
+    } catch (error) {
+      console.error('Dashboard error:', error.message);
+
+      if (error.message === 'SESSION_EXPIRED') {
+        dispatch('page-change', 'login'); // redirect to login
+      }
     } finally {
       loading = false;
+      isFetching = false;
     }
-  });
+  }
+
+  // ✅ Wait for authStore to finish loading before calling API
+  $: if (!$authStore.loading && $authStore.user) {
+    fetchStats();
+  }
+
 </script>
 
 <div class="dashboard-page">
@@ -67,7 +63,6 @@
     <div class="loading">Loading...</div>
   {:else}
     <div class="stats-grid">
-      <!-- Students -->
       <div class="stat-card" style="--icon-bg: #dbeafe;">
         <div class="stat-icon">👥</div>
         <div class="stat-content">
@@ -76,7 +71,6 @@
         </div>
       </div>
 
-      <!-- Teachers -->
       <div class="stat-card" style="--icon-bg: #dcfce7;">
         <div class="stat-icon">👨‍🏫</div>
         <div class="stat-content">
@@ -85,7 +79,6 @@
         </div>
       </div>
 
-      <!-- Courses -->
       <div class="stat-card" style="--icon-bg: #fef3c7;">
         <div class="stat-icon">📚</div>
         <div class="stat-content">
@@ -94,7 +87,6 @@
         </div>
       </div>
 
-      <!-- Enrollments -->
       <div class="stat-card" style="--icon-bg: #ede9fe;">
         <div class="stat-icon">📋</div>
         <div class="stat-content">

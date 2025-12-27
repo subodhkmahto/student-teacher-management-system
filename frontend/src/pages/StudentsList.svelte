@@ -1,21 +1,14 @@
 <script>
-  import { onMount } from 'svelte';
-  import { API_BASE_URL } from '../lib/api';
-  console.log('API_BASE_URL:', API_BASE_URL);
-  import { authStore } from '../stores/auth';
+  import { onMount, createEventDispatcher } from 'svelte';
+  import { apiCall } from '../lib/api';
 
+  const dispatch = createEventDispatcher();
 
   let students = [];
   let loading = false;
   let error = '';
   let showForm = false;
   let submitting = false;
-   let token;
-
-  // Subscribe to authStore to get current token
-  authStore.subscribe(state => {
-    token = state.session?.access_token;
-  });
 
   let newStudent = {
     full_name: '',
@@ -28,36 +21,37 @@
     loadStudents();
   });
 
+  // 🔹 Load students (Authenticated)
   async function loadStudents() {
     loading = true;
     error = '';
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/students`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      console.log('API response:', res);
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData?.error || 'Failed to load students');
-      }
-
-      students = await res.json();
-      console.log('Students loaded:', students);
-
+      const data = await apiCall('/api/students');
+      students = data || [];
     } catch (err) {
-      error = err.message;
+      console.error('Load students error:', err);
+      
+      // Handle session expired
+      if (err.message === 'SESSION_EXPIRED') {
+        dispatch('sessionExpired');
+        return;
+      }
+      
+      error = err.message || 'Failed to load students';
     } finally {
       loading = false;
     }
   }
 
+  // 🔹 Add new student (Authenticated)
   async function handleAddStudent() {
-    if (!newStudent.full_name || !newStudent.email || !newStudent.roll_number || !newStudent.grade) {
+    if (
+      !newStudent.full_name ||
+      !newStudent.email ||
+      !newStudent.roll_number ||
+      !newStudent.grade
+    ) {
       error = 'All fields are required';
       return;
     }
@@ -66,22 +60,31 @@
     error = '';
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/students`, {
+      await apiCall('/api/students', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newStudent)
+        body: newStudent
       });
 
-      const resData = await res.json();
-      if (!res.ok) {
-        throw new Error(resData?.error || 'Failed to add student');
-      }
+      newStudent = {
+        full_name: '',
+        email: '',
+        roll_number: '',
+        grade: ''
+      };
 
-      newStudent = { full_name: '', email: '', roll_number: '', grade: '' };
       showForm = false;
       await loadStudents();
+
     } catch (err) {
-      error = err.message;
+      console.error('Add student error:', err);
+      
+      // Handle session expired
+      if (err.message === 'SESSION_EXPIRED') {
+        dispatch('sessionExpired');
+        return;
+      }
+      
+      error = err.message || 'Failed to add student';
     } finally {
       submitting = false;
     }

@@ -1,8 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { API_BASE_URL } from '../lib/api';
-  import { authStore } from '../stores/auth';
-
+  import { apiCall } from '../lib/api';
 
   let teachers = [];
   let courses = [];
@@ -14,28 +12,28 @@
   let selectedSemester = '';
   let submitting = false;
 
-  onMount(async () => {
-    await loadData();
+  onMount(() => {
+    loadData();
   });
 
   async function loadData() {
-      const token = authStore.session?.access_token; // get token from authStore
-    try {
-   const [teachersRes, coursesRes, assignmentsRes] = await Promise.all([
-            fetch(`${API_BASE_URL}/api/teachers`, {
-             headers: { Authorization: `Bearer ${token}` }
-             }),
-            fetch(`${API_BASE_URL}/api/courses`, {
-              headers: { Authorization: `Bearer ${token}` }
-            }),
-            fetch(`${API_BASE_URL}/api/course-assignments`, {
-              headers: { Authorization: `Bearer ${token}` }
-            })
-        ]);
+    loading = true;
+    error = '';
 
-      if (teachersRes.ok) teachers = await teachersRes.json();
-      if (coursesRes.ok) courses = await coursesRes.json();
-      if (assignmentsRes.ok) assignments = await assignmentsRes.json();
+    try {
+      const [
+        teachersData,
+        coursesData,
+        assignmentsData
+      ] = await Promise.all([
+        apiCall('/api/teachers'),
+        apiCall('/api/courses'),
+        apiCall('/api/course-assignments')
+      ]);
+
+      teachers = teachersData || [];
+      courses = coursesData || [];
+      assignments = assignmentsData || [];
     } catch (err) {
       error = err.message;
     } finally {
@@ -43,47 +41,37 @@
     }
   }
 
-async function handleAssignCourse() {
-  if (!selectedTeacher || !selectedCourse || !selectedSemester) {
-    error = 'Please select teacher, course, and semester';
-    return;
-  }
-
-  submitting = true;
-  error = '';
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/course-assignments`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${authStore.session?.access_token}`
-      },
-      body: JSON.stringify({
-        teacher_id: selectedTeacher,
-        course_id: selectedCourse,
-        semester: selectedSemester
-      })
-    });
-
-    const result = await response.json(); // Parse the JSON from server
-
-    if (!response.ok) {
-      throw new Error(result.error || 'Failed to assign course'); // Use server error
+  async function handleAssignCourse() {
+    if (!selectedTeacher || !selectedCourse || !selectedSemester) {
+      error = 'Please select teacher, course, and semester';
+      return;
     }
 
-    // Reset selections
-    selectedTeacher = '';
-    selectedCourse = '';
-    selectedSemester = '';
+    submitting = true;
+    error = '';
 
-    await loadData();
-  } catch (err) {
-    error = err.message; // Show proper server error
-  } finally {
-    submitting = false;
+    try {
+      await apiCall('/api/course-assignments', {
+        method: 'POST',
+        body: {
+          teacher_id: selectedTeacher,
+          course_id: selectedCourse,
+          semester: selectedSemester
+        }
+      });
+
+      // reset form
+      selectedTeacher = '';
+      selectedCourse = '';
+      selectedSemester = '';
+
+      await loadData();
+    } catch (err) {
+      error = err.message;
+    } finally {
+      submitting = false;
+    }
   }
-}
 
   function getTeacherName(teacherId) {
     return teachers.find(t => t.id === teacherId)?.full_name || 'N/A';
@@ -93,6 +81,7 @@ async function handleAssignCourse() {
     return courses.find(c => c.id === courseId)?.name || 'N/A';
   }
 </script>
+
 
 <div class="page">
   <div class="page-header">

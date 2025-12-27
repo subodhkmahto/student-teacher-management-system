@@ -12,6 +12,8 @@ function createAuthStore() {
     loading: true
   });
 
+  let authListener = null;
+
   return {
     subscribe,
 
@@ -19,6 +21,16 @@ function createAuthStore() {
     login: async (email, password) => {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        localStorage.setItem('access_token', data.session.access_token);
+        localStorage.setItem('refresh_token', data.session.refresh_token);
+
+        // When calling API
+        if (accessToken && refreshToken) {
+          await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+        }
         if (error) {
           if (error.message.toLowerCase().includes('confirm')) {
             throw new Error('Your email is not verified. Please check your inbox.');
@@ -158,6 +170,54 @@ function createAuthStore() {
           }));
         } else {
           update(state => ({ ...state, loading: false }));
+        }
+
+        // ✅ FIXED: Auth state listener with proper event handling
+        if (!authListener) {
+          const { data: authData } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth event:', event);
+
+            // Handle SIGNED_IN event
+            if (event === 'SIGNED_IN' && session) {
+              const { data: profileData } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .maybeSingle();
+
+              update(state => ({
+                ...state,
+                user: session.user,
+                session: session,
+                role: profileData?.role || session.user.user_metadata?.role || null,
+                loading: false
+              }));
+            }
+
+            // Handle TOKEN_REFRESHED event
+            if (event === 'TOKEN_REFRESHED' && session) {
+              const { data: profileData } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .maybeSingle();
+
+              update(state => ({
+                ...state,
+                user: session.user,
+                session: session,
+                role: profileData?.role || session.user.user_metadata?.role || null,
+                loading: false
+              }));
+            }
+
+            // Handle SIGNED_OUT event
+            if (event === 'SIGNED_OUT') {
+              set({ user: null, session: null, role: null, loading: false });
+            }
+          });
+
+          authListener = authData.subscription;
         }
       } catch (err) {
         console.error('Auth initialization error:', err.message);

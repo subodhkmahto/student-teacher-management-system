@@ -1,10 +1,9 @@
-import { authenticate } from './middleware/auth.js';
-
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 
+import { authenticate } from './middleware/auth.js';
 import authRoutes from './routes/auth.js';
 import courseAssignmentRoutes from './routes/course-assignments.js';
 import courseRoutes from './routes/courses.js';
@@ -22,11 +21,10 @@ app.use(cors({
   origin: [
     "http://localhost:5173",
     "https://student-teacher-management-system-iahm1654l.vercel.app",
-    "https://student-teacher-managem-git-679121-subodh-kumar-mahtos-projects.vercel.app", //  Add this
-    "https://student-teacher-management-system-nine.vercel.app" // add this
-
+    "https://student-teacher-managem-git-679121-subodh-kumar-mahtos-projects.vercel.app",
+    "https://student-teacher-management-system-nine.vercel.app"
   ],
-  credentials: true // important for cookies
+  credentials: true // Important for cookies
 }));
 
 //  Body parser
@@ -35,20 +33,110 @@ app.use(express.json());
 //  Cookie parser must be before routes
 app.use(cookieParser());
 
-//  Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/students',authenticate, studentRoutes);
-app.use('/api/teachers',authenticate, teacherRoutes);
-app.use('/api/courses',authenticate, courseRoutes);
-app.use('/api/course-assignments',authenticate, courseAssignmentRoutes);
-app.use('/api/enrollments',authenticate, enrollmentRoutes);
+// ============================================
+// PUBLIC ROUTES (No Authentication Required)
+// ============================================
+app.use('/api/auth', authRoutes); // Login, Signup, etc.
 
-//  Health check route
+// ================= DEBUG MIDDLEWARE =================
+// Log all incoming requests and headers
+app.use((req, res, next) => {
+  console.log('--- Incoming Request ---');
+  console.log('Method:', req.method);
+  console.log('URL:', req.originalUrl);
+  console.log('Headers:', req.headers); // <-- this includes Authorization
+  console.log('Body:', req.body);
+
+  // Extract and log token if exists
+  const authHeader = req.headers['authorization'];
+  if (authHeader) {
+    const token = authHeader.split(' ')[1]; // Bearer <token>
+    console.log('Access token received:', token);
+  } else {
+    console.log('No Authorization header received');
+  }
+
+  next(); // continue to routes
+});
+// =====================================================
+
+
+//  Health check route (Public)
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK' });
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+
+// ============================================
+// PROTECTED ROUTES (Authentication Required)
+// ============================================
+
+// Student Routes - Only authenticated users
+app.use('/api/students', authenticate, studentRoutes);
+
+// Teacher Routes - Only authenticated users
+app.use('/api/teachers', authenticate, teacherRoutes);
+
+// Course Routes - Only authenticated users
+app.use('/api/courses', authenticate, courseRoutes);
+
+// Course Assignment Routes - Only authenticated users
+app.use('/api/course-assignments', authenticate, courseAssignmentRoutes);
+
+// Enrollment Routes - Only authenticated users
+app.use('/api/enrollments', authenticate, enrollmentRoutes);
+
+// ============================================
+// ROLE-BASED PROTECTED ROUTES (Examples)
+// ============================================
+
+// Example: Only teachers can create courses
+// app.use('/api/courses', authenticate, authorize('teacher'), courseRoutes);
+
+// Example: Only students can view their enrollments
+// app.use('/api/enrollments', authenticate, authorize('student'), enrollmentRoutes);
+
+// Example: Both students and teachers can access
+// app.use('/api/courses', authenticate, authorize('student', 'teacher'), courseRoutes);
+
+// ============================================
+// ERROR HANDLING MIDDLEWARE
+// ============================================
+
+// 404 Handler
+app.use((req, res) => {
+  res.status(404).json({ 
+    error: 'Route not found',
+    path: req.originalUrl 
+  });
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error(' Global Error:', err.message);
+  
+  // JWT errors
+  if (err.name === 'UnauthorizedError') {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+  
+  // Validation errors
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({ error: err.message });
+  }
+  
+  // Default server error
+  res.status(500).json({ 
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
 });
 
 //  Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(` Server running on port ${PORT}`);
+  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔐 Authentication: Enabled`);
 });
+
+export default app;

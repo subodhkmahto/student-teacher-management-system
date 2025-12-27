@@ -1,30 +1,30 @@
 <script>
   import { onMount } from 'svelte';
-  import { API_BASE_URL } from '../lib/api';
-  import { authStore } from '../stores/auth';
-
+  import { apiCall } from '../lib/api';
 
   let courses = [];
   let loading = true;
   let error = '';
   let showForm = false;
-  let newCourse = { name: '', code: '', description: '', credit_hours: '' };
   let submitting = false;
-  const token = authStore.session?.access_token; // get Supabase token
 
-  onMount(async () => {
-    await loadCourses();
+  let newCourse = {
+    name: '',
+    code: '',
+    description: '',
+    credit_hours: ''
+  };
+
+  onMount(() => {
+    loadCourses();
   });
 
   async function loadCourses() {
+    loading = true;
+    error = '';
+
     try {
-       const response = await fetch(`${API_BASE_URL}/api/courses`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) throw new Error('Failed to load courses');
-      courses = await response.json();
+      courses = await apiCall('/api/courses');
     } catch (err) {
       error = err.message;
     } finally {
@@ -39,20 +39,24 @@
     }
 
     submitting = true;
+    error = '';
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/courses`, {
+      await apiCall('/api/courses', {
         method: 'POST',
-          headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(newCourse)
+        body: {
+          name: newCourse.name,
+          code: newCourse.code,
+          description: newCourse.description,
+          credit_hours: newCourse.credit_hours
+        }
       });
 
-      if (!response.ok) throw new Error('Failed to create course');
-
+      // reset form
       newCourse = { name: '', code: '', description: '', credit_hours: '' };
       showForm = false;
+
+      // reload list
       await loadCourses();
     } catch (err) {
       error = err.message;

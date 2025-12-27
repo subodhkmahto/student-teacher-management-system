@@ -1,36 +1,31 @@
 <script>
   import { onMount } from 'svelte';
-  import { API_BASE_URL } from '../lib/api';
-  import { authStore } from '../stores/auth';
-
-
+  import { apiCall } from '../lib/api';
 
   let teachers = [];
   let loading = true;
   let error = '';
   let showForm = false;
-  let newTeacher = { full_name: '', email: '', department: '', specialization: '' };
   let submitting = false;
-  let token;
-  authStore.subscribe(state => {
-    token = state.session?.access_token;
+
+  let newTeacher = {
+    full_name: '',
+    email: '',
+    department: '',
+    specialization: ''
+  };
+
+  onMount(() => {
+    loadTeachers();
   });
 
-  onMount(async () => {
-    await loadTeachers();
-  });
-
+  // 🔹 Load teachers (GET)
   async function loadTeachers() {
+    loading = true;
+    error = '';
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/teachers`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!response.ok) throw new Error('Failed to load teachers');
-      teachers = await response.json();
-      console.log(teachers);
+      teachers = await apiCall('/api/teachers');
     } catch (err) {
       error = err.message;
     } finally {
@@ -38,43 +33,44 @@
     }
   }
 
- async function handleAddTeacher() {
-  if (!newTeacher.full_name || !newTeacher.email || !newTeacher.department || !newTeacher.specialization) {
-    error = 'Full name, email, department, and specialization are required';
-    return;
-  }
-
-  submitting = true;
-  error = '';
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/teachers`, {
-      method: 'POST',
-      headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-      body: JSON.stringify(newTeacher)
-    });
-
-    const result = await res.json();
-
-    if (!res.ok) {
-      // Server se aaya hua error message use karo
-      throw new Error(result.error || 'Failed to add teacher');
+  // 🔹 Add teacher (POST)
+  async function handleAddTeacher() {
+    if (
+      !newTeacher.full_name ||
+      !newTeacher.email ||
+      !newTeacher.department ||
+      !newTeacher.specialization
+    ) {
+      error = 'Full name, email, department, and specialization are required';
+      return;
     }
 
-    // Success
-    newTeacher = { full_name: '', email: '', department: '', specialization: '' };
-    showForm = false;
-    await loadTeachers();
-  } catch (err) {
-    error = err.message; // Server ka error message view me dikhayega
-  } finally {
-    submitting = false;
-  }
-}
+    submitting = true;
+    error = '';
 
+    try {
+      await apiCall('/api/teachers', {
+        method: 'POST',
+        body: newTeacher
+      });
+
+      // reset form
+      newTeacher = {
+        full_name: '',
+        email: '',
+        department: '',
+        specialization: ''
+      };
+
+      showForm = false;
+      await loadTeachers();
+
+    } catch (err) {
+      error = err.message;
+    } finally {
+      submitting = false;
+    }
+  }
 </script>
 
 <div class="page-wrapper">

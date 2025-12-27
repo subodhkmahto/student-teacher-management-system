@@ -1,9 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { API_BASE_URL } from '../lib/api';
-  import { authStore } from '../stores/auth';
-
-
+  import { apiCall } from '../lib/api';
 
   let students = [];
   let courses = [];
@@ -12,26 +9,16 @@
   let selectedStudent = '';
   let selectedCourse = '';
   let submitting = false;
-  let token;
-
-  // Get access token from authStore
-  authStore.subscribe(state => {
-    token = state.session?.access_token;
-  });
 
   onMount(async () => {
     try {
-      const [studentsRes, coursesRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/students`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch(`${API_BASE_URL}/api/courses`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+      const [studentsData, coursesData] = await Promise.all([
+        apiCall('/api/students'),
+        apiCall('/api/courses')
       ]);
 
-      if (studentsRes.ok) students = await studentsRes.json();
-      if (coursesRes.ok) courses = await coursesRes.json();
+      students = studentsData || [];
+      courses = coursesData || [];
     } catch (err) {
       error = err.message;
     } finally {
@@ -47,24 +34,19 @@
 
     submitting = true;
     error = '';
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/enrollments`, {
+      await apiCall('/api/enrollments', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
+        body: {
           student_id: selectedStudent,
           course_id: selectedCourse
-        })
+        }
       });
 
-      if (!response.ok) throw new Error('Failed to enroll student');
-
+      // Reset form
       selectedStudent = '';
       selectedCourse = '';
-      error = '';
     } catch (err) {
       error = err.message;
     } finally {
@@ -72,6 +54,7 @@
     }
   }
 </script>
+
 
 <div class="page">
   <div class="page-header">
