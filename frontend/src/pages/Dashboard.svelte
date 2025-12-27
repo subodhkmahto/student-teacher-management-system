@@ -1,5 +1,5 @@
 <script>
-  import { onMount, createEventDispatcher } from 'svelte';
+  import { createEventDispatcher } from 'svelte';
   import { apiCall } from '../lib/api';
   import { authStore } from '../stores/auth';
 
@@ -47,7 +47,7 @@
     }
   }
 
-  // ✅ Wait for authStore to finish loading before calling API
+  //  Wait for authStore to finish loading before calling API
   $: if (!$authStore.loading && $authStore.user) {
     fetchStats();
   }

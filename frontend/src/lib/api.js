@@ -19,7 +19,7 @@ export async function apiCall(endpoint, options = {}) {
 
   // Check if session exists and is valid
   if (!session) {
-    console.error('❌ No session found');
+    console.error(' No session found');
     throw new Error('SESSION_EXPIRED');
   }
 
@@ -31,11 +31,11 @@ export async function apiCall(endpoint, options = {}) {
     });
     
     if (refreshResult.error) {
-      console.error('❌ Refresh failed:', refreshResult.error);
+      console.error(' Refresh failed:', refreshResult.error);
       throw new Error('SESSION_EXPIRED');
     }
     session = refreshResult.data.session;
-    console.log('✅ Session refreshed');
+    console.log(' Session refreshed');
   }
 
   const token = session.access_token;
@@ -52,28 +52,15 @@ export async function apiCall(endpoint, options = {}) {
 
   const fullUrl = `${API_BASE_URL}${endpoint}`;
   
-  console.log('📡 API Request:', {
-    url: fullUrl,
-    method: config.method,
-    hasToken: !!token,
-    tokenPrefix: token.substring(0, 20) + '...'
-  });
-
   const response = await fetch(fullUrl, config);
 
-  console.log('📥 API Response:', {
-    status: response.status,
-    statusText: response.statusText,
-    url: fullUrl
-  });
-
   if (response.status === 401) {
-    console.error('❌ 401 Unauthorized - Backend rejected token');
+    console.error(' 401 Unauthorized - Backend rejected token');
     throw new Error('SESSION_EXPIRED');
   }
   
   if (response.status === 403) {
-    console.error('❌ 403 Forbidden');
+    console.error(' 403 Forbidden');
     throw new Error('Access denied');
   }
 
@@ -81,10 +68,10 @@ export async function apiCall(endpoint, options = {}) {
   
   if (!response.ok) {
     const errorMsg = data?.error || data?.message || `API Error (${response.status})`;
-    console.error('❌ API Error:', errorMsg, data);
+    console.error(' API Error:', errorMsg, data);
     throw new Error(errorMsg);
   }
 
-  console.log('✅ API call successful');
+  console.log(' API call successful');
   return data;
 }

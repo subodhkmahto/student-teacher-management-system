@@ -8,14 +8,8 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
-console.log('🔧 Environment Check:', {
-  hasUrl: !!supabaseUrl,
-  hasServiceKey: !!supabaseServiceKey,
-  hasAnonKey: !!supabaseAnonKey,
-  nodeEnv: process.env.NODE_ENV
-});
 
-// ✅ Check all required keys
+// Check all required keys
 if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY');
 }
@@ -38,7 +32,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-console.log('✅ Supabase clients initialized successfully');
 
 // ====== AUTH FUNCTIONS ======
 
@@ -55,10 +48,9 @@ export async function signUp(email, password, fullName, role) {
     throw new Error('Invalid role. Must be "student" or "teacher"');
   }
 
-  const redirectUrl =
-    process.env.NODE_ENV === 'production'
-      ? 'https://student-teacher-management-system-nine.vercel.app/login'
-      : 'http://localhost:5173/login';
+  const redirectUrl = process.env.NODE_ENV === 'production'
+    ? 'https://student-teacher-management-system-nine.vercel.app/login'
+    : 'http://localhost:5173/login';
 
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email,
@@ -125,10 +117,9 @@ export async function getCurrentUser() {
 export async function forgotPassword(email) {
   if (!email) throw new Error('Email is required');
 
-  const baseUrl =
-    process.env.NODE_ENV === 'production'
-      ? 'https://student-teacher-management-system-nine.vercel.app'
-      : 'http://localhost:5173';
+  const baseUrl = process.env.NODE_ENV === 'production'
+    ? 'https://student-teacher-management-system-nine.vercel.app'
+    : 'http://localhost:5173';
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${baseUrl}/reset-password`

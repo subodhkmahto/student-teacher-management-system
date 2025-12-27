@@ -172,7 +172,7 @@ function createAuthStore() {
           update(state => ({ ...state, loading: false }));
         }
 
-        // ✅ FIXED: Auth state listener with proper event handling
+        //  FIXED: Auth state listener with proper event handling
         if (!authListener) {
           const { data: authData } = supabase.auth.onAuthStateChange(async (event, session) => {
             console.log('Auth event:', event);

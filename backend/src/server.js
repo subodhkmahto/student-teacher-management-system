@@ -38,28 +38,6 @@ app.use(cookieParser());
 // ============================================
 app.use('/api/auth', authRoutes); // Login, Signup, etc.
 
-// ================= DEBUG MIDDLEWARE =================
-// Log all incoming requests and headers
-app.use((req, res, next) => {
-  console.log('--- Incoming Request ---');
-  console.log('Method:', req.method);
-  console.log('URL:', req.originalUrl);
-  console.log('Headers:', req.headers); // <-- this includes Authorization
-  console.log('Body:', req.body);
-
-  // Extract and log token if exists
-  const authHeader = req.headers['authorization'];
-  if (authHeader) {
-    const token = authHeader.split(' ')[1]; // Bearer <token>
-    console.log('Access token received:', token);
-  } else {
-    console.log('No Authorization header received');
-  }
-
-  next(); // continue to routes
-});
-// =====================================================
-
 
 //  Health check route (Public)
 app.get('/api/health', (req, res) => {
@@ -134,9 +112,9 @@ app.use((err, req, res, next) => {
 
 //  Start server
 app.listen(PORT, () => {
-  console.log(` Server running on port ${PORT}`);
-  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔐 Authentication: Enabled`);
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(` Authentication: Enabled`);
 });
 
 export default app;
