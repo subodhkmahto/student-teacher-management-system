@@ -7,12 +7,12 @@ export const API_BASE_URL = isDevelopment
   ? 'http://localhost:3000'  // Local backend
   : import.meta.env.VITE_API_BASE_URL || 'https://student-teacher-backend-avil.onrender.com'; // Production backend
 
-console.log('🌐 Environment:', {
-  mode: import.meta.env.MODE,
-  hostname: window.location.hostname,
-  isDevelopment,
-  apiBaseUrl: API_BASE_URL
-});
+// console.log(' Environment:', {
+//   mode: import.meta.env.MODE,
+//   hostname: window.location.hostname,
+//   isDevelopment,
+//   apiBaseUrl: API_BASE_URL
+// });
 
 export async function apiCall(endpoint, options = {}) {
   let { data: { session }, error } = await supabase.auth.getSession();
@@ -25,7 +25,7 @@ export async function apiCall(endpoint, options = {}) {
 
   // Check if session is expired
   if (session.expires_at && session.expires_at * 1000 < Date.now()) {
-    console.log('🔄 Session expired, refreshing...');
+    console.log('Session expired, refreshing...');
     const refreshResult = await supabase.auth.refreshSession({ 
       refresh_token: session.refresh_token 
     });
@@ -51,7 +51,7 @@ export async function apiCall(endpoint, options = {}) {
   };
 
   const fullUrl = `${API_BASE_URL}${endpoint}`;
-  
+
   const response = await fetch(fullUrl, config);
 
   if (response.status === 401) {

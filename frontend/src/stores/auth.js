@@ -21,16 +21,6 @@ function createAuthStore() {
     login: async (email, password) => {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        localStorage.setItem('access_token', data.session.access_token);
-        localStorage.setItem('refresh_token', data.session.refresh_token);
-
-        // When calling API
-        if (accessToken && refreshToken) {
-          await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          });
-        }
         if (error) {
           if (error.message.toLowerCase().includes('confirm')) {
             throw new Error('Your email is not verified. Please check your inbox.');
