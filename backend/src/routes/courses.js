@@ -1,9 +1,11 @@
 import express from 'express';
 import { supabase } from '../lib/supabase.js';
+import { authorize } from '../middleware/auth.js';
+
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/',  authorize('student', 'teacher'), async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('courses')
@@ -17,7 +19,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id',  authorize('student', 'teacher'), async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('courses')
@@ -32,7 +34,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', authorize('teacher'), async (req, res) => {
   console.log(req.body);
   try {
     const { name, code, description, credit_hours } = req.body;
@@ -54,7 +56,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', authorize('teacher'), async (req, res) => {
   try {
     const { name, description, credit_hours } = req.body;
     const { data, error } = await supabase
@@ -65,6 +67,21 @@ router.put('/:id', async (req, res) => {
 
     if (error) throw error;
     res.json(data[0]);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.delete('/:id',authorize('teacher'), async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('courses')
+      .delete()
+      .eq('id', req.params.id)
+      .select();
+
+    if (error) throw error;
+    res.json({ message: 'Course deleted successfully', course: data[0] });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

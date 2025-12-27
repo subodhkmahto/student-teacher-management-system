@@ -20,11 +20,9 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://student-teacher-management-system-iahm1654l.vercel.app",
-    "https://student-teacher-managem-git-679121-subodh-kumar-mahtos-projects.vercel.app",
     "https://student-teacher-management-system-nine.vercel.app"
   ],
-  credentials: true // Important for cookies
+  credentials: true
 }));
 
 //  Body parser
@@ -113,8 +111,6 @@ app.use((err, req, res, next) => {
 //  Start server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-  console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(` Authentication: Enabled`);
 });
 
 export default app;
