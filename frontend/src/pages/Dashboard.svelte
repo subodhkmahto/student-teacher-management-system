@@ -25,28 +25,28 @@
       title: 'Students',
       icon: '👥',
       iconBg: '#dbeafe',
-      roles: ['admin','student', 'teacher']
+      roles: ['admin', 'teacher','student']  // Removed 'student' from here
     },
     {
       key: 'teachers',
       title: 'Teachers',
       icon: '👨‍🏫',
       iconBg: '#dcfce7',
-      roles: ['admin','teacher']
+      roles: ['admin', 'teacher']
     },
     {
       key: 'courses',
       title: 'Courses',
       icon: '📚',
       iconBg: '#fef3c7',
-      roles: ['student', 'teacher', 'admin']
+      roles: ['student', 'admin']
     },
     {
       key: 'enrollments',
       title: 'Enrollments',
       icon: '📋',
       iconBg: '#ede9fe',
-      roles: ['teacher', 'admin']
+      roles: ['admin']
     }
   ];
 
@@ -79,7 +79,7 @@
       console.error('Dashboard error:', error.message);
 
       if (error.message === 'SESSION_EXPIRED') {
-        dispatch('page-change', 'login'); // redirect to login
+        dispatch('page-change', 'login');
       }
     } finally {
       loading = false;
@@ -87,7 +87,7 @@
     }
   }
 
-  //  Wait for authStore to finish loading before calling API
+  // Wait for authStore to finish loading before calling API
   $: if (!$authStore.loading && $authStore.user) {
     fetchStats();
   }
@@ -216,4 +216,4 @@
       font-size: 1.5rem;
     }
   }
-</style>
+</style>z

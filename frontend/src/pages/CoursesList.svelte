@@ -1,6 +1,12 @@
 <script>
   import { onMount } from 'svelte';
   import { apiCall } from '../lib/api';
+   import { authStore } from '../stores/auth';
+
+  //  Check if user is admin (only admin can add courses)
+  $: canAddCourse = $authStore?.role === 'admin';
+  
+  console.log('User role for adding course:', $authStore?.role);
 
   let courses = [];
   let loading = true;
@@ -72,12 +78,14 @@
 
       <div class="card-header d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Courses</h5>
+      {#if canAddCourse}
       <button
         class="btn btn-primary btn-sm"
         on:click={() => showForm = !showForm}
       >
         {showForm ? 'Cancel' : '+ Add Course'}
       </button>
+      {/if}
     </div>
 
     <div class="card-body">
@@ -85,7 +93,7 @@
         <div class="error">{error}</div>
       {/if}
 
-      {#if showForm}
+      {#if showForm && canAddCourse}
         <div class="card mb-4">
           <div class="card-body">
           <h6>Add New Course</h6>

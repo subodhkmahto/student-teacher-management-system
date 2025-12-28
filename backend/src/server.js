@@ -22,7 +22,9 @@ app.use(cors({
     "http://localhost:5173",
     "https://student-teacher-management-system-nine.vercel.app"
   ],
-  credentials: true
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
+
 }));
 
 //  Body parser

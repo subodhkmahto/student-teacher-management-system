@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase.js';
+import { supabase, supabaseAdmin } from '../lib/supabase.js'; // ← supabaseAdmin import karein
 
 export async function authenticate(req, res, next) {
   try {
@@ -14,7 +14,7 @@ export async function authenticate(req, res, next) {
 
     const token = authHeader.split(' ')[1];
 
-    //  Verify token with Supabase
+    //  Token verify karne ke liye supabase (anon key) use karein
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
@@ -26,24 +26,35 @@ export async function authenticate(req, res, next) {
     }
 
 
-    //  Fetch user profile with role
-    const { data: profile, error: profileError } = await supabase
+    //  Profile fetch karne ke liye supabaseAdmin use karein (RLS bypass)
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('role, full_name')
       .eq('id', user.id)
       .single();
 
-    if (profileError || !profile) {
-      console.error(' Profile not found:', profileError?.message);
+    if (profileError) {
+      console.error(' Profile query error:', {
+        code: profileError.code,
+        message: profileError.message,
+        userId: user.id
+      });
       return res.status(403).json({ 
-        error: 'Profile not found',
-        message: 'User profile does not exist'
+        error: 'Profile error',
+        message: profileError.message
       });
     }
 
-    console.log(` User authenticated: ${user.email} (${profile.role})`);
+    if (!profile) {
+      console.error(' Profile not found for user:', user.id, user.email);
+      return res.status(403).json({ 
+        error: 'Profile not found',
+        message: 'User profile does not exist. Please contact admin.'
+      });
+    }
 
-    //  Attach user to request object
+
+    // Attach user to request object
     req.user = {
       id: user.id,
       email: user.email,
@@ -61,9 +72,14 @@ export async function authenticate(req, res, next) {
   }
 }
 
-
 export function authorize(...allowedRoles) {
   return (req, res, next) => {
+    console.log(' Authorization check:', {
+      requiredRoles: allowedRoles,
+      userRole: req.user?.role,
+      path: req.path
+    });
+
     if (!req.user) {
       console.log(' No user in request');
       return res.status(401).json({ 
@@ -78,7 +94,7 @@ export function authorize(...allowedRoles) {
       console.log(` Access denied: ${userRole} not in [${allowedRoles.join(', ')}]`);
       return res.status(403).json({ 
         error: 'Access denied',
-        message: `This action requires one of these roles: ${allowedRoles.join(', ')}`
+        message: `This action requires one of these roles: ${allowedRoles.join(', ')}. Your role: ${userRole}`
       });
     }
 

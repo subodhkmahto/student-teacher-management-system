@@ -52,17 +52,17 @@
     {
       page: 'assign-course',
       label: 'Assign Course',
-      roles: ['admin','teacher']
+      roles: ['admin']
     },
     {
       page: 'enroll-student',
       label: 'Enroll Student',
-      roles: ['admin','teacher']
+      roles: ['admin']
     },
     {
       page: 'enrollments',
       label: 'Enrollments',
-      roles: ['teacher', 'admin']
+      roles: ['admin']
     }
   ];
 

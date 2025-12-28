@@ -1,9 +1,10 @@
 import express from 'express';
 import { supabase } from '../lib/supabase.js';
+import { authorize } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/', authorize('admin', 'teacher','student'), async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('students')
@@ -18,7 +19,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', authorize('admin', 'teacher','student'), async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('students')
@@ -34,12 +35,13 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', authorize('admin', 'teacher'), async (req, res) => {
+  console.log(req.body);
   try {
-    const { full_name, email, user_id, roll_number, grade } = req.body;
+    const { full_name, email, roll_number, grade } = req.body;
     const { data, error } = await supabase
       .from('students')
-      .insert([{ full_name, email, user_id, roll_number, grade }])
+      .insert([{ full_name, email, roll_number, grade }])
       .select();
 
     if (error) {
@@ -57,7 +59,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', authorize('admin', 'teacher'), async (req, res) => {
   try {
     const { grade } = req.body;
     const { data, error } = await supabase
@@ -68,6 +70,21 @@ router.put('/:id', async (req, res) => {
 
     if (error) throw error;
     res.json(data[0]);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.delete('/:id', authorize('admin'), async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('students')
+      .delete()
+      .eq('id', req.params.id)
+      .select();
+
+    if (error) throw error;
+    res.json({ message: 'Student deleted successfully', student: data[0] });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

@@ -1,6 +1,8 @@
 <script>
   import { onMount, createEventDispatcher } from 'svelte';
   import { apiCall } from '../lib/api';
+  import { authStore } from '../stores/auth';
+
 
   const dispatch = createEventDispatcher();
 
@@ -17,11 +19,13 @@
     grade: ''
   };
 
+  //  Check if user can add students
+  $: canAddStudent = $authStore?.role === 'teacher' || $authStore?.role === 'admin';
+ 
   onMount(() => {
     loadStudents();
   });
 
-  // 🔹 Load students (Authenticated)
   async function loadStudents() {
     loading = true;
     error = '';
@@ -32,7 +36,6 @@
     } catch (err) {
       console.error('Load students error:', err);
       
-      // Handle session expired
       if (err.message === 'SESSION_EXPIRED') {
         dispatch('sessionExpired');
         return;
@@ -44,7 +47,6 @@
     }
   }
 
-  // 🔹 Add new student (Authenticated)
   async function handleAddStudent() {
     if (
       !newStudent.full_name ||
@@ -78,7 +80,6 @@
     } catch (err) {
       console.error('Add student error:', err);
       
-      // Handle session expired
       if (err.message === 'SESSION_EXPIRED') {
         dispatch('sessionExpired');
         return;
@@ -96,136 +97,138 @@
     <div class="card shadow-sm students-card">
 
       <div class="card-header d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">Students</h5>
-      <button class="btn btn-primary btn-sm" on:click={() => showForm = !showForm}>
-        {showForm ? 'Cancel' : '+ Add Student'}
-      </button>
-    </div>
+        <h5 class="mb-0">Students</h5>
+        
+        <!--  Only show button if user is teacher/admin -->
+        {#if canAddStudent}
+          <button class="btn btn-primary btn-sm" on:click={() => showForm = !showForm}>
+            {showForm ? 'Cancel' : '+ Add Student'}
+          </button>
+        {/if}
+      </div>
 
-    <div class="card-body">
+      <div class="card-body">
 
-      <!-- ERROR -->
-      {#if error}
-        <div class="alert alert-danger">{error}</div>
-      {/if}
+        <!-- ERROR -->
+        {#if error}
+          <div class="alert alert-danger">{error}</div>
+        {/if}
 
-      <!-- FORM -->
-      {#if showForm}
-        <div class="card mb-4">
-          <div class="card-body">
-            <h6 class="mb-3">Add New Student</h6>
-            <form on:submit|preventDefault={handleAddStudent}>
-              <div class="row mb-3">
+        <!-- FORM - Only show if user has permission -->
+        {#if showForm && canAddStudent}
+          <div class="card mb-4">
+            <div class="card-body">
+              <h6 class="mb-3">Add New Student</h6>
+              <form on:submit|preventDefault={handleAddStudent}>
+                <div class="row mb-3">
 
-                <div class="col-md-6">
-                  <label class="form-label">Full Name</label>
-                  <input type="text" class="form-control" bind:value={newStudent.full_name} required />
+                  <div class="col-md-6">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" class="form-control" bind:value={newStudent.full_name} required />
+                  </div>
+
+                  <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" bind:value={newStudent.email} required />
+                  </div>
+
+                  <div class="col-md-6">
+                    <label class="form-label">Roll Number</label>
+                    <input type="text" class="form-control" bind:value={newStudent.roll_number} required />
+                  </div>
+
+                  <div class="col-md-6">
+                    <label class="form-label">Grade</label>
+                    <input type="text" class="form-control" bind:value={newStudent.grade} required />
+                  </div>
+
                 </div>
 
-                <div class="col-md-6">
-                  <label class="form-label">Email</label>
-                  <input type="email" class="form-control" bind:value={newStudent.email} required />
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">Roll Number</label>
-                  <input type="text" class="form-control" bind:value={newStudent.roll_number} required />
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">Grade</label>
-                  <input type="text" class="form-control" bind:value={newStudent.grade} required />
-                </div>
-
-              </div>
-
-              <button class="btn btn-success" disabled={submitting}>
-                {submitting ? 'Saving...' : 'Save Student'}
-              </button>
-            </form>
+                <button class="btn btn-success" disabled={submitting}>
+                  {submitting ? 'Saving...' : 'Save Student'}
+                </button>
+              </form>
+            </div>
           </div>
-        </div>
-      {/if}
+        {/if}
 
-      <!-- LOADING -->
-      {#if loading}
-        <div class="text-center py-4 text-muted">Loading students...</div>
-      {:else if students.length === 0}
-        <div class="text-center py-4 text-muted">No students found</div>
-      {:else}
-        <!-- TABLE -->
-        <div class="table-responsive">
-          <table class="table table-bordered table-hover">
-            <thead class="table-light">
-              <tr>
-                <th>Roll Number</th>
-                <th>Full Name</th>
-                <th>Email</th>
-                <th>Grade</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each students as student (student.id)}
+        <!-- LOADING -->
+        {#if loading}
+          <div class="text-center py-4 text-muted">Loading students...</div>
+        {:else if students.length === 0}
+          <div class="text-center py-4 text-muted">No students found</div>
+        {:else}
+          <!-- TABLE -->
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+              <thead class="table-light">
                 <tr>
-                  <td>{student.roll_number ?? 'N/A'}</td>
-                  <td>{student.full_name ?? 'N/A'}</td>
-                  <td>{student.email ?? 'N/A'}</td>
-                  <td>{student.grade ?? 'N/A'}</td>
+                  <th>Roll Number</th>
+                  <th>Full Name</th>
+                  <th>Email</th>
+                  <th>Grade</th>
                 </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
-      {/if}
+              </thead>
+              <tbody>
+                {#each students as student (student.id)}
+                  <tr>
+                    <td>{student.roll_number ?? 'N/A'}</td>
+                    <td>{student.full_name ?? 'N/A'}</td>
+                    <td>{student.email ?? 'N/A'}</td>
+                    <td>{student.grade ?? 'N/A'}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        {/if}
 
+      </div>
     </div>
   </div>
 </div>
-</div>
 
 <style>
-  
+  /* Same styles as before */
   body.sidebar-collapsed .page-wrapper {
-  margin-left: 0;
-  width: 100%;
-}
-.card{
-  border-radius: 12px;
-  border: 1px solid #e3e6f0;
-  margin-top: 38px;
-}
-
-.page-wrapper {
-  margin-left: 250px;
-  width: calc(100% - 250px);
-  min-height: 100vh;
-  background: #f8f9fa;
-  transition: all 0.3s ease;
-  margin-bottom: 300px;
-
-}
-
-
-@media (max-width: 991px) {
-  .page-wrapper {
     margin-left: 0;
     width: 100%;
   }
-}
 
-.container-fluid {
-  max-width: 1400px;
-}
+  .card {
+    border-radius: 12px;
+    border: 1px solid #e3e6f0;
+    margin-top: 38px;
+  }
 
-.students-card {
-  width: 100%;
-  border-radius: 12px;
-  border: 1px solid #e3e6f0;
+  .page-wrapper {
+    margin-left: 250px;
+    width: calc(100% - 250px);
+    min-height: 100vh;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+    margin-bottom: 300px;
+  }
 
-}
+  @media (max-width: 991px) {
+    .page-wrapper {
+      margin-left: 0;
+      width: 100%;
+    }
+  }
 
-.table th,
-.table td {
-  white-space: nowrap;
-}
+  .container-fluid {
+    max-width: 1400px;
+  }
+
+  .students-card {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid #e3e6f0;
+  }
+
+  .table th,
+  .table td {
+    white-space: nowrap;
+  }
 </style>
