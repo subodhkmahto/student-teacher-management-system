@@ -18,55 +18,29 @@
     isOpen = false;
   };
 
-async function handleLogout() {
-  currentPage = 'login';  
-  await authStore.logout();
-}
+  function handleLogout() {
+    isOpen = false;                 // sidebar close
+    dispatch('navigate', 'login');  // instant page change
+
+    // logout in background (fast UX)
+    authStore.logout().catch(console.error);
+  }
+
   const toggleSidebar = () => {
     isOpen = !isOpen;
   };
 
-  // Define which menu items are visible for each role
   const menuItems = [
-    {
-      page: 'dashboard',
-      label: 'Dashboard',
-      roles: ['student', 'teacher', 'admin']
-    },
-    {
-      page: 'students',
-      label: 'Students',
-      roles: ['student', 'teacher', 'admin']
-    },
-    {
-      page: 'teachers',
-      label: 'Teachers',
-      roles: ['teacher', 'admin']
-    },
-    {
-      page: 'courses',
-      label: 'Courses',
-      roles: ['student', 'teacher', 'admin']
-    },
-    {
-      page: 'assign-course',
-      label: 'Assign Course',
-      roles: ['admin']
-    },
-    {
-      page: 'enroll-student',
-      label: 'Enroll Student',
-      roles: ['admin']
-    },
-    {
-      page: 'enrollments',
-      label: 'Enrollments',
-      roles: ['admin']
-    }
+    { page: 'dashboard', label: 'Dashboard', roles: ['student', 'teacher', 'admin'] },
+    { page: 'students', label: 'Students', roles: ['student', 'teacher', 'admin'] },
+    { page: 'teachers', label: 'Teachers', roles: ['teacher', 'admin'] },
+    { page: 'courses', label: 'Courses', roles: ['student', 'teacher', 'admin'] },
+    { page: 'assign-course', label: 'Assign Course', roles: ['admin'] },
+    { page: 'enroll-student', label: 'Enroll Student', roles: ['admin'] },
+    { page: 'enrollments', label: 'Enrollments', roles: ['admin'] }
   ];
 
-  // Filter menu items based on user role
-  $: visibleMenuItems = menuItems.filter(item => 
+  $: visibleMenuItems = menuItems.filter(item =>
     item.roles.includes(userRole)
   );
 </script>
