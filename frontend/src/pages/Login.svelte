@@ -1,7 +1,8 @@
 <script>
+  import { createEventDispatcher, onMount } from 'svelte';
+  import { isEmail, isRequired, minLength } from '../../../shared/validation.js';
   import { authStore } from '../stores/auth';
-  import { createEventDispatcher,onMount } from 'svelte';
-  import { isEmail, isRequired, minLength } from '../../../shared/validation.js'; 
+ 
 
   const dispatch = createEventDispatcher();
 
@@ -122,7 +123,7 @@
 
     try {
       await authStore.forgotPassword(email);
-      success = 'Password reset email sent. Please check your inbox.';
+      success = 'A password reset link has been sent to your email. Please check your inbox.';
       autoClearSuccess();
       mode = 'login';
     } catch (err) {
