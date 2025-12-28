@@ -1,6 +1,7 @@
 <script>
   import { authStore } from '../stores/auth';
   import { createEventDispatcher } from 'svelte';
+  import { isEmail, isRequired, minLength } from '../../../shared/validation.js'; 
 
   const dispatch = createEventDispatcher();
 
@@ -24,15 +25,51 @@
     }, 4000);
   };
 
+  //  Validate login form
+  const validateLogin = () => {
+    if (!isRequired(email)) {
+      return 'Email is required';
+    }
+    if (!isEmail(email)) {
+      return 'Please enter a valid email address';
+    }
+    if (!isRequired(password)) {
+      return 'Password is required';
+    }
+    if (!minLength(password, 6)) {
+      return 'Password must be at least 6 characters';
+    }
+    return null;
+  };
+
+  //  Validate email-only forms (resend, forgot)
+  const validateEmail = () => {
+    if (!isRequired(email)) {
+      return 'Email is required';
+    }
+    if (!isEmail(email)) {
+      return 'Please enter a valid email address';
+    }
+    return null;
+  };
+
   const handleLogin = async () => {
     clearMessages();
+
+    //  Validate form
+    const validationError = validateLogin();
+    if (validationError) {
+      error = validationError;
+      return;
+    }
+
     loading = true;
 
     try {
       await authStore.login(email, password);
       dispatch('page-change', 'dashboard');
     } catch (err) {
-      error = err.message;
+      error = err.message || 'Login failed. Please check your credentials.';
     } finally {
       loading = false;
     }
@@ -41,8 +78,10 @@
   const resendVerification = async () => {
     clearMessages();
 
-    if (!email) {
-      error = 'Please enter your email.';
+    //  Validate email
+    const validationError = validateEmail();
+    if (validationError) {
+      error = validationError;
       return;
     }
 
@@ -54,7 +93,7 @@
       autoClearSuccess();
       mode = 'login';
     } catch (err) {
-      error = err.message;
+      error = err.message || 'Failed to send verification email.';
     } finally {
       loading = false;
     }
@@ -63,8 +102,10 @@
   const handleForgotPassword = async () => {
     clearMessages();
 
-    if (!email) {
-      error = 'Please enter your email.';
+    //  Validate email
+    const validationError = validateEmail();
+    if (validationError) {
+      error = validationError;
       return;
     }
 
@@ -76,7 +117,7 @@
       autoClearSuccess();
       mode = 'login';
     } catch (err) {
-      error = err.message;
+      error = err.message || 'Failed to send reset email.';
     } finally {
       loading = false;
     }
@@ -85,6 +126,23 @@
   const handleRegisterClick = () => {
     dispatch('page-change', 'register');
   };
+
+  //  Handle Enter key
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      if (mode === 'login') {
+        handleLogin();
+      } else if (mode === 'resend') {
+        resendVerification();
+      } else if (mode === 'forgot') {
+        handleForgotPassword();
+      }
+    }
+  };
+
+  //  Real-time validation feedback
+  $: emailError = email && !isEmail(email) ? 'Invalid email format' : '';
+  $: passwordError = mode === 'login' && password && !minLength(password, 6) ? 'Password must be at least 6 characters' : '';
 </script>
 
 <div class="login-container">
@@ -114,10 +172,15 @@
         id="email"
         type="email"
         bind:value={email}
+        on:keypress={handleKeyPress}
         placeholder="Enter your email"
         required
         disabled={loading}
+        class:input-error={emailError}
       />
+      {#if emailError}
+        <span class="field-error">{emailError}</span>
+      {/if}
     </div>
 
     <!-- PASSWORD (LOGIN ONLY) -->
@@ -128,10 +191,15 @@
           id="password"
           type="password"
           bind:value={password}
+          on:keypress={handleKeyPress}
           placeholder="Enter your password"
           required
           disabled={loading}
+          class:input-error={passwordError}
         />
+        {#if passwordError}
+          <span class="field-error">{passwordError}</span>
+        {/if}
       </div>
     {/if}
 
@@ -259,6 +327,34 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     font-size: 1rem;
+    transition: border-color 0.2s;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  input:disabled {
+    background: #f3f4f6;
+    cursor: not-allowed;
+  }
+
+  /*  Error styling for input fields */
+  .input-error {
+    border-color: #dc2626 !important;
+  }
+
+  .input-error:focus {
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1) !important;
+  }
+
+  /*  Field-level error messages */
+  .field-error {
+    color: #dc2626;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
   }
 
   .btn-primary {
@@ -269,6 +365,18 @@
     border-radius: 4px;
     width: 100%;
     cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: background 0.2s;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: #2563eb;
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 
   .signup-link {
@@ -283,6 +391,11 @@
     color: var(--primary);
     cursor: pointer;
     text-decoration: underline;
+    font-size: 0.875rem;
+  }
+
+  .link-button:hover {
+    color: #2563eb;
   }
 
   .error-message {

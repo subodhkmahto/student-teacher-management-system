@@ -9,6 +9,7 @@ function createAuthStore() {
     user: null,
     session: null,
     role: null,
+    profile: null, //  Added profile
     loading: true
   });
 
@@ -17,10 +18,14 @@ function createAuthStore() {
   return {
     subscribe,
 
-    // Login
+    //  Login with profile fetch
     login: async (email, password) => {
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ 
+          email, 
+          password 
+        });
+        
         if (error) {
           if (error.message.toLowerCase().includes('confirm')) {
             throw new Error('Your email is not verified. Please check your inbox.');
@@ -28,27 +33,37 @@ function createAuthStore() {
           throw error;
         }
 
+        // Fetch profile after login
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('*')
+          .select('role, full_name, email')
           .eq('id', data.user.id)
           .single();
+
         if (profileError) throw profileError;
+
+        console.log(' Login successful:', {
+          user: data.user.email,
+          role: profileData?.role
+        });
 
         update(state => ({
           ...state,
           user: data.user,
           session: data.session,
-          role: profileData?.role || null
+          role: profileData?.role || null,
+          profile: profileData || null,
+          loading: false
         }));
 
-        return true;
+        return { success: true };
       } catch (err) {
-        throw new Error(err.message);
+        console.error(' Login error:', err);
+        throw err;
       }
     },
 
-    // Register
+    //  Register
     register: async (email, password, fullName, role) => {
       try {
         const redirectUrl =
@@ -72,56 +87,88 @@ function createAuthStore() {
           throw error;
         }
 
-        return true;
+        console.log(' Registration successful');
+        return { success: true };
       } catch (err) {
-        throw new Error(err.message);
+        console.error(' Registration error:', err);
+        throw err;
       }
     },
 
-    // Logout
+    //  Logout
     logout: async () => {
       try {
         await supabase.auth.signOut();
-        set({ user: null, session: null, role: null, loading: false });
+        set({ 
+          user: null, 
+          session: null, 
+          role: null, 
+          profile: null, 
+          loading: false 
+        });
       } catch (err) {
         console.error('Logout error:', err.message);
       }
     },
 
-    // Forgot password
+    //  Forgot password
     forgotPassword: async (email) => {
-      const redirectUrl =
-        window.location.hostname === 'localhost'
-          ? 'http://localhost:5173/reset-password'
-          : 'https://student-teacher-management-system-nine.vercel.app/reset-password';
-
-      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
-      if (error) throw error;
-      return true;
-    },
-
-    // Update password using token
-    updatePassword: async (accessToken, newPassword) => {
       try {
-        const { data, error } = await supabase.auth.updateUser(
-          { password: newPassword },
-          { accessToken }
-        );
+        const redirectUrl =
+          window.location.hostname === 'localhost'
+            ? 'http://localhost:5173/reset-password'
+            : 'https://student-teacher-management-system-nine.vercel.app/reset-password';
+
+        const { error } = await supabase.auth.resetPasswordForEmail(email, { 
+          redirectTo: redirectUrl 
+        });
+        
         if (error) throw error;
-        return data;
+        
+        console.log(' Password reset email sent');
+        return { success: true };
       } catch (err) {
-        throw new Error(err.message);
+        console.error(' Forgot password error:', err);
+        throw err;
       }
     },
 
-    // Resend verification email
-    resendVerificationEmail: async (email) => {
-      const { error } = await supabase.auth.resend({ type: 'signup', email });
-      if (error) throw new Error(error.message);
-      return true;
+    //  Update password (for reset password page)
+    updatePassword: async (newPassword) => {
+      try {
+        const { data, error } = await supabase.auth.updateUser({
+          password: newPassword
+        });
+        
+        if (error) throw error;
+        
+        console.log(' Password updated successfully');
+        return { success: true };
+      } catch (err) {
+        console.error(' Update password error:', err);
+        throw err;
+      }
     },
 
-    // Initialize auth
+    //  Resend verification email
+    resendVerificationEmail: async (email) => {
+      try {
+        const { error } = await supabase.auth.resend({ 
+          type: 'signup', 
+          email 
+        });
+        
+        if (error) throw error;
+        
+        console.log(' Verification email resent');
+        return { success: true };
+      } catch (err) {
+        console.error(' Resend verification error:', err);
+        throw err;
+      }
+    },
+
+    //  Initialize auth
     initAuth: async () => {
       try {
         if (window.location.pathname === '/reset-password') {
@@ -136,9 +183,10 @@ function createAuthStore() {
 
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('*')
+            .select('role, full_name, email')
             .eq('id', user.id)
             .maybeSingle();
+
           if (profileError) throw profileError;
 
           if (!profileData) {
@@ -151,27 +199,32 @@ function createAuthStore() {
             if (insertError) throw insertError;
           }
 
+          console.log(' Auth initialized:', {
+            user: user.email,
+            role: profileData?.role
+          });
+
           update(state => ({
             ...state,
             user,
             session,
             role: profileData?.role || user.user_metadata?.role || null,
+            profile: profileData || null,
             loading: false
           }));
         } else {
           update(state => ({ ...state, loading: false }));
         }
 
-        //  FIXED: Auth state listener with proper event handling
+        // Auth state listener
         if (!authListener) {
           const { data: authData } = supabase.auth.onAuthStateChange(async (event, session) => {
             console.log('Auth event:', event);
 
-            // Handle SIGNED_IN event
             if (event === 'SIGNED_IN' && session) {
               const { data: profileData } = await supabase
                 .from('profiles')
-                .select('*')
+                .select('role, full_name, email')
                 .eq('id', session.user.id)
                 .maybeSingle();
 
@@ -180,15 +233,15 @@ function createAuthStore() {
                 user: session.user,
                 session: session,
                 role: profileData?.role || session.user.user_metadata?.role || null,
+                profile: profileData || null,
                 loading: false
               }));
             }
 
-            // Handle TOKEN_REFRESHED event
             if (event === 'TOKEN_REFRESHED' && session) {
               const { data: profileData } = await supabase
                 .from('profiles')
-                .select('*')
+                .select('role, full_name, email')
                 .eq('id', session.user.id)
                 .maybeSingle();
 
@@ -197,13 +250,19 @@ function createAuthStore() {
                 user: session.user,
                 session: session,
                 role: profileData?.role || session.user.user_metadata?.role || null,
+                profile: profileData || null,
                 loading: false
               }));
             }
 
-            // Handle SIGNED_OUT event
             if (event === 'SIGNED_OUT') {
-              set({ user: null, session: null, role: null, loading: false });
+              set({ 
+                user: null, 
+                session: null, 
+                role: null, 
+                profile: null, 
+                loading: false 
+              });
             }
           });
 
@@ -213,6 +272,14 @@ function createAuthStore() {
         console.error('Auth initialization error:', err.message);
         update(state => ({ ...state, loading: false }));
       }
+    },
+
+    //  Set profile manually
+    setProfile(profile) {
+      update(state => ({
+        ...state,
+        profile
+      }));
     }
   };
 }

@@ -1,7 +1,7 @@
 <script>
   import { authStore } from '../stores/auth';
   import { createEventDispatcher } from 'svelte';
-
+  import { isEmail, isRequired, minLength } from '../../../shared/validation.js'; 
 
   const dispatch = createEventDispatcher();
 
@@ -11,15 +11,78 @@
   let role = 'student';
   let error = '';
   let loading = false;
+  let success = '';
+
+  const autoClearMessage = () => {
+    setTimeout(() => {
+      success = '';
+      error = '';
+    }, 4000);
+  };
+
+  const validateForm = () => {
+    // Full Name validation
+    if (!isRequired(fullName)) {
+      return 'Full name is required';
+    }
+    if (!minLength(fullName, 3)) {
+      return 'Full name must be at least 3 characters';
+    }
+
+    // Email validation
+    if (!isRequired(email)) {
+      return 'Email is required';
+    }
+    if (!isEmail(email)) {
+      return 'Please enter a valid email address';
+    }
+
+    // Password validation
+    if (!isRequired(password)) {
+      return 'Password is required';
+    }
+    if (!minLength(password, 6)) {
+      return 'Password must be at least 6 characters';
+    }
+
+    // Role validation
+    if (!isRequired(role)) {
+      return 'Please select a role';
+    }
+    if (!['student', 'teacher', 'admin'].includes(role)) {
+      return 'Invalid role selected';
+    }
+
+    return null; // No errors
+  };
 
   const handleRegister = async () => {
     error = '';
+    success = '';
+
+    const validationError = validateForm();
+    if (validationError) {
+      error = validationError;
+      autoClearMessage();
+      return;
+    }
+
     loading = true;
+
     try {
       await authStore.register(email, password, fullName, role);
-      dispatch('page-change', 'login');
+      
+      success = 'Account created successfully! Please check your email to verify.';
+      autoClearMessage();
+      
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        dispatch('page-change', 'login');
+      }, 2000);
+      
     } catch (err) {
-      error = err.message;
+      error = err.message || 'Registration failed. Please try again.';
+      autoClearMessage();
     } finally {
       loading = false;
     }
@@ -28,6 +91,18 @@
   const handleLoginClick = () => {
     dispatch('page-change', 'login');
   };
+
+  //  Handle Enter key
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleRegister();
+    }
+  };
+
+  //  Real-time validation feedback (optional)
+  $: emailError = email && !isEmail(email) ? 'Invalid email format' : '';
+  $: passwordError = password && !minLength(password, 6) ? 'Password too short (min 6 characters)' : '';
+  $: fullNameError = fullName && !minLength(fullName, 3) ? 'Name too short (min 3 characters)' : '';
 </script>
 
 <div class="register-container">
@@ -39,43 +114,66 @@
       <div class="error-message">{error}</div>
     {/if}
 
+    {#if success}
+      <div class="success-message">{success}</div>
+    {/if}
+
     <form on:submit|preventDefault={handleRegister}>
+      <!-- Full Name -->
       <div class="form-group">
         <label for="fullname">Full Name</label>
         <input
           id="fullname"
           type="text"
           bind:value={fullName}
+          on:keypress={handleKeyPress}
           placeholder="Enter your full name"
           required
           disabled={loading}
+          class:input-error={fullNameError}
         />
+        {#if fullNameError}
+          <span class="field-error">{fullNameError}</span>
+        {/if}
       </div>
 
+      <!-- Email -->
       <div class="form-group">
         <label for="email">Email</label>
         <input
           id="email"
           type="email"
           bind:value={email}
+          on:keypress={handleKeyPress}
           placeholder="Enter your email"
           required
           disabled={loading}
+          class:input-error={emailError}
         />
+        {#if emailError}
+          <span class="field-error">{emailError}</span>
+        {/if}
       </div>
 
+      <!-- Password -->
       <div class="form-group">
         <label for="password">Password</label>
         <input
           id="password"
           type="password"
           bind:value={password}
-          placeholder="Enter a password"
+          on:keypress={handleKeyPress}
+          placeholder="Enter a password (min 6 characters)"
           required
           disabled={loading}
+          class:input-error={passwordError}
         />
+        {#if passwordError}
+          <span class="field-error">{passwordError}</span>
+        {/if}
       </div>
 
+      <!-- Role -->
       <div class="form-group">
         <label for="role">Role</label>
         <select id="role" bind:value={role} disabled={loading}>
@@ -140,6 +238,15 @@
     font-size: 0.875rem;
   }
 
+  .success-message {
+    background: #d1fae5;
+    color: #065f46;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+  }
+
   form {
     display: flex;
     flex-direction: column;
@@ -178,6 +285,22 @@
   select:disabled {
     background: #f3f4f6;
     cursor: not-allowed;
+  }
+
+  /*  Error styling for input fields */
+  .input-error {
+    border-color: #dc2626 !important;
+  }
+
+  .input-error:focus {
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1) !important;
+  }
+
+  /*  Field-level error messages */
+  .field-error {
+    color: #dc2626;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
   }
 
   .btn-primary {

@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { authStore, initAuth } from './stores/auth';
 
+  // Pages
   import Login from './pages/Login.svelte';
   import Register from './pages/Register.svelte';
   import Dashboard from './pages/Dashboard.svelte';
@@ -11,16 +12,31 @@
   import AssignCourse from './pages/AssignCourse.svelte';
   import EnrollStudent from './pages/EnrollStudent.svelte';
   import EnrollmentsView from './pages/EnrollmentsView.svelte';
+  import ResetPassword from './pages/ResetPassword.svelte';
+
+  // Components
   import Sidebar from './components/Sidebar.svelte';
 
   let currentPage = 'login';
   let isInitialized = false;
 
   onMount(async () => {
+    // 🔍 Detect reset password flow
+    const urlParams = new URLSearchParams(window.location.search);
+    const hash = window.location.hash;
+
+    const isResetPassword =
+      window.location.pathname === '/reset-password' ||
+      hash.includes('type=recovery') ||
+      urlParams.get('type') === 'recovery';
+
     await initAuth();
     isInitialized = true;
 
-    if ($authStore.user) {
+    if (isResetPassword) {
+      console.log('🔐 Reset password page detected');
+      currentPage = 'reset-password';
+    } else if ($authStore.user) {
       currentPage = 'dashboard';
     } else {
       currentPage = 'login';
@@ -29,6 +45,11 @@
 
   const handlePageChange = (page) => {
     currentPage = page || 'dashboard';
+
+    // 🧹 Clear URL when coming back to login
+    if (page === 'login') {
+      window.history.replaceState({}, '', '/');
+    }
   };
 
   const handleLogout = () => {
@@ -39,7 +60,11 @@
 
 <div class="app">
   {#if isInitialized}
-    {#if $authStore.user}
+    {#if currentPage === 'reset-password'}
+      <!-- 🔐 Reset Password Page -->
+      <ResetPassword on:page-change={(e) => handlePageChange(e.detail)} />
+
+    {:else if $authStore.user}
       <div class="app-layout">
         <Sidebar
           currentPage={currentPage}
@@ -48,7 +73,7 @@
         />
 
         <main class="app-main">
-          {#if currentPage === 'dashboard' || !currentPage}
+          {#if currentPage === 'dashboard'}
             <Dashboard />
           {:else if currentPage === 'students'}
             <StudentsList />
