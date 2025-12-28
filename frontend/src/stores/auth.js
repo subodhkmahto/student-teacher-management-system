@@ -120,7 +120,8 @@ function createAuthStore() {
             : 'https://student-teacher-management-system-nine.vercel.app/reset-password';
 
         const { error } = await supabase.auth.resetPasswordForEmail(email, { 
-          redirectTo: redirectUrl 
+          redirectTo: `${redirectUrl}`
+          
         });
         
         if (error) throw error;
@@ -171,10 +172,6 @@ function createAuthStore() {
     //  Initialize auth
     initAuth: async () => {
       try {
-        if (window.location.pathname === '/reset-password') {
-          update(state => ({ ...state, loading: false }));
-          return;
-        }
         
         const { data: { session } } = await supabase.auth.getSession();
 

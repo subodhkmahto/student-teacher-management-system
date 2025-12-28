@@ -1,8 +1,8 @@
 <script>
-  import { onMount, createEventDispatcher } from 'svelte';
-  import { authStore } from '../stores/auth';
-  import { supabase } from '../lib/supabase'; // ✅ Import supabase
+  import { createEventDispatcher, onMount } from 'svelte';
   import { isRequired, minLength } from '../../../shared/validation.js';
+  import { supabase } from '../lib/supabase';
+  import { authStore } from '../stores/auth';
 
   const dispatch = createEventDispatcher();
 
@@ -16,38 +16,20 @@
 
   onMount(async () => {
     try {
-      // Check URL hash for recovery token
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-    console.log('🔍 URL Hash Params:', Object.fromEntries(hashParams.entries()));
-    console.log('🔍 Access Token:', accessToken);
-      const type = hashParams.get('type');
+      const { data: { session } } = await supabase.auth.getSession();
 
-      console.log('🔍 Checking recovery token:', {
-        hash: window.location.hash,
-        accessToken: accessToken ? 'Found' : 'Not found',
-        type: type
-      });
-
-      // ✅ Verify if it's a recovery type and token exists
-      if (type === 'recovery' && accessToken) {
-        // Verify the session is valid
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (session && !sessionError) {
-          hasRecoveryToken = true;
-          console.log('✅ Valid recovery token found');
-        } else {
-          error = 'Invalid or expired reset link. Please request a new one.';
-          console.error('❌ Session error:', sessionError);
-        }
-      } else {
+      if (!session) {
         error = 'Invalid or expired reset link. Please request a new one.';
-        console.error('❌ Recovery token not found in URL');
+        hasRecoveryToken = false;
+        return;
       }
+
+      hasRecoveryToken = true;
+      console.log(' Recovery session detected');
+
     } catch (err) {
-      error = 'Failed to verify reset link. Please try again.';
-      console.error('❌ Token verification error:', err);
+      console.error(err);
+      error = 'Failed to verify reset link.';
     } finally {
       checkingToken = false;
     }
@@ -86,24 +68,50 @@
     loading = true;
 
     try {
+      //  Update password
       await authStore.updatePassword(password);
-      
-      success = 'Password updated successfully! Redirecting to login...';
-      
+
+      //  Logout user (important)
+      await supabase.auth.signOut();
+
+      //  Clear URL completely (works for both hash and path routing)
+      if (window.location.hash) {
+        // Hash-based routing (#/reset-password)
+        window.location.hash = '';
+        window.history.replaceState(null, '', window.location.pathname);
+      } else {
+        // Path-based routing (/reset-password)
+        window.history.replaceState(null, '', '/');
+      }
+
+      //  Small delay to ensure URL clears before redirect
       setTimeout(() => {
-        dispatch('page-change', 'login');
-      }, 2000);
-      
+        dispatch('page-change', {
+          page: 'login',
+          message: 'Password updated successfully. Please login with your new password.'
+        });
+      }, 100);
+
     } catch (err) {
       error = err.message || 'Failed to update password';
-      console.error('❌ Password update error:', err);
+      console.error(' Password update error:', err);
     } finally {
       loading = false;
     }
   };
 
   const handleBackToLogin = () => {
-    dispatch('page-change', 'login');
+    // Clear URL completely before going back to login
+    if (window.location.hash) {
+      window.location.hash = '';
+      window.history.replaceState(null, '', window.location.pathname);
+    } else {
+      window.history.replaceState(null, '', '/');
+    }
+    
+    setTimeout(() => {
+      dispatch('page-change', 'login');
+    }, 100);
   };
 
   const handleKeyPress = (e) => {

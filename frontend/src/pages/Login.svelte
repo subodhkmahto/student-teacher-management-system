@@ -1,6 +1,6 @@
 <script>
   import { authStore } from '../stores/auth';
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher,onMount } from 'svelte';
   import { isEmail, isRequired, minLength } from '../../../shared/validation.js'; 
 
   const dispatch = createEventDispatcher();
@@ -10,6 +10,15 @@
   let error = '';
   let loading = false;
   let success = '';
+
+  export let message = '';
+
+  onMount(() => {
+    if (message) {
+      success = message;
+    }
+  });
+
 
   let mode = 'login'; 
   // login | resend | forgot

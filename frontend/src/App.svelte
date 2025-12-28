@@ -19,9 +19,10 @@
 
   let currentPage = 'login';
   let isInitialized = false;
+  let loginMessage = ''; //  Add this to store success messages
 
   onMount(async () => {
-    // 🔍 Detect reset password flow
+    //  Detect reset password flow
     const urlParams = new URLSearchParams(window.location.search);
     const hash = window.location.hash;
 
@@ -34,7 +35,7 @@
     isInitialized = true;
 
     if (isResetPassword) {
-      console.log('🔐 Reset password page detected');
+      console.log(' Reset password page detected');
       currentPage = 'reset-password';
     } else if ($authStore.user) {
       currentPage = 'dashboard';
@@ -43,25 +44,40 @@
     }
   });
 
-  const handlePageChange = (page) => {
-    currentPage = page || 'dashboard';
+  //  Updated to handle both string and object
+  const handlePageChange = (eventDetail) => {
+    // Clear previous message
+    loginMessage = '';
 
-    // 🧹 Clear URL when coming back to login
-    if (page === 'login') {
+    if (typeof eventDetail === 'object' && eventDetail.page) {
+      // Object with page and message
+      currentPage = eventDetail.page || 'dashboard';
+      loginMessage = eventDetail.message || '';
+      
+      console.log(' Page change:', currentPage, 'Message:', loginMessage);
+    } else {
+      // Simple string
+      currentPage = eventDetail || 'dashboard';
+    }
+
+    //  Clear URL when coming back to login or dashboard
+    if (currentPage === 'login' || currentPage === 'dashboard') {
       window.history.replaceState({}, '', '/');
     }
   };
 
   const handleLogout = () => {
     authStore.logout();
+    loginMessage = ''; // Clear any messages
     currentPage = 'login';
+    window.history.replaceState({}, '', '/');
   };
 </script>
 
 <div class="app">
   {#if isInitialized}
     {#if currentPage === 'reset-password'}
-      <!-- 🔐 Reset Password Page -->
+      <!--  Reset Password Page -->
       <ResetPassword on:page-change={(e) => handlePageChange(e.detail)} />
 
     {:else if $authStore.user}
@@ -95,7 +111,11 @@
       <Register on:page-change={(e) => handlePageChange(e.detail)} />
 
     {:else}
-      <Login on:page-change={(e) => handlePageChange(e.detail)} />
+      <!--  Pass message prop to Login -->
+      <Login 
+        on:page-change={(e) => handlePageChange(e.detail)} 
+        message={loginMessage}
+      />
     {/if}
   {/if}
 </div>
