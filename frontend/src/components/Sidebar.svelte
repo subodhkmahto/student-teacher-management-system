@@ -18,11 +18,10 @@
     isOpen = false;
   };
 
-  const logout = () => {
-    dispatch('logout');
-    isOpen = false;
-  };
-
+async function handleLogout() {
+  currentPage = 'login';  
+  await authStore.logout();
+}
   const toggleSidebar = () => {
     isOpen = !isOpen;
   };
@@ -93,7 +92,7 @@
 
   <div class="sidebar-footer">
     <p class="user-email">{userEmail}</p>
-    <button class="btn-logout" on:click={logout}>
+    <button class="btn-logout" on:click={handleLogout}>
       Logout
     </button>
   </div>
