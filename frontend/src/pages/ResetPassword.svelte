@@ -13,6 +13,7 @@
   let loading = false;
   let hasRecoveryToken = false;
   let checkingToken = true;
+  let currentUserEmail = ''; // Store user email for logging
 
   onMount(async () => {
     try {
@@ -25,7 +26,8 @@
       }
 
       hasRecoveryToken = true;
-      console.log(' Recovery session detected');
+      currentUserEmail = session.user?.email || '';
+      console.log(' Recovery session detected for:', currentUserEmail);
 
     } catch (err) {
       console.error(err);
@@ -56,6 +58,28 @@
     return null;
   };
 
+  //  Log password reset to database
+  const logPasswordReset = async (userId, email, status) => {
+    try {
+      const { error: logError } = await supabase
+        .from('password_reset_logs')
+        .insert({
+          user_id: userId,
+          email: email,
+          status: status,
+          requested_at: new Date().toISOString()
+        });
+
+      if (logError) {
+        console.error(' Failed to log password reset:', logError);
+      } else {
+        console.log(' Password reset logged successfully');
+      }
+    } catch (err) {
+      console.error(' Logging error:', err);
+    }
+  };
+
   const handleResetPassword = async () => {
     clearMessages();
 
@@ -68,23 +92,29 @@
     loading = true;
 
     try {
+      // Get current session before updating
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      const userEmail = session?.user?.email || currentUserEmail;
+
       //  Update password
       await authStore.updatePassword(password);
+
+      //  Log successful password reset
+      await logPasswordReset(userId, userEmail, 'success');
 
       //  Logout user (important)
       await supabase.auth.signOut();
 
-      //  Clear URL completely (works for both hash and path routing)
+      //  Clear URL completely
       if (window.location.hash) {
-        // Hash-based routing (#/reset-password)
         window.location.hash = '';
         window.history.replaceState(null, '', window.location.pathname);
       } else {
-        // Path-based routing (/reset-password)
         window.history.replaceState(null, '', '/');
       }
 
-      //  Small delay to ensure URL clears before redirect
+      //  Redirect to login with success message
       setTimeout(() => {
         dispatch('page-change', {
           page: 'login',
@@ -95,13 +125,22 @@
     } catch (err) {
       error = err.message || 'Failed to update password';
       console.error(' Password update error:', err);
+
+      // Log failed password reset
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await logPasswordReset(
+          session.user.id, 
+          session.user.email || currentUserEmail, 
+          'failed'
+        );
+      }
     } finally {
       loading = false;
     }
   };
 
   const handleBackToLogin = () => {
-    // Clear URL completely before going back to login
     if (window.location.hash) {
       window.location.hash = '';
       window.history.replaceState(null, '', window.location.pathname);
@@ -120,7 +159,6 @@
     }
   };
 
-  // Real-time validation
   $: passwordError = password && !minLength(password, 6) ? 'Password too short (min 6 characters)' : '';
   $: confirmPasswordError = confirmPassword && password !== confirmPassword ? 'Passwords do not match' : '';
 </script>
@@ -146,7 +184,6 @@
 
       {#if hasRecoveryToken}
         <form on:submit|preventDefault={handleResetPassword}>
-          <!-- New Password -->
           <div class="form-group">
             <label for="password">New Password</label>
             <input
@@ -164,7 +201,6 @@
             {/if}
           </div>
 
-          <!-- Confirm Password -->
           <div class="form-group">
             <label for="confirmPassword">Confirm Password</label>
             <input
